@@ -1,0 +1,147 @@
+{{!-- Checkout header --}}
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:40px 0 32px">
+  <div class="container">
+    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
+      <a href="/" style="color:inherit">Home</a> &rsaquo; <a href="/cart" style="color:inherit">Basket</a> &rsaquo; Checkout
+    </p>
+    <h1 style="font-size:2rem;font-weight:800;margin-bottom:20px">Checkout</h1>
+    <div class="co-steps">
+      <div class="co-step co-step--done"><span class="co-step-num">✓</span> Account</div>
+      <div class="co-step-divider co-step-divider--done"></div>
+      <div class="co-step co-step--done"><span class="co-step-num">✓</span> Shipping</div>
+      <div class="co-step-divider co-step-divider--done"></div>
+      <div class="co-step co-step--active"><span class="co-step-num">3</span> Payment</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding:48px 0">
+  <div class="container">
+    <div class="co-layout">
+
+      {{!-- Left: Billing & payment form --}}
+      <div class="co-main">
+        <div class="co-panel">
+          <h2 class="co-section-title">Billing address</h2>
+          <div class="form-check" style="margin-bottom:20px">
+            <input type="checkbox" id="same-as-shipping" checked onchange="toggleBilling(this)">
+            <label for="same-as-shipping">Same as shipping address</label>
+          </div>
+          <div id="billing-fields" style="display:none">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">First name</label>
+                <input class="form-input" type="text" name="billingFirstName" placeholder="Jane">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Last name</label>
+                <input class="form-input" type="text" name="billingLastName" placeholder="Smith">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Address line 1</label>
+              <input class="form-input" type="text" name="billingLine1" placeholder="123 High Street">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">City</label>
+                <input class="form-input" type="text" name="billingCity" placeholder="London">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Postcode</label>
+                <input class="form-input" type="text" name="billingPostcode" placeholder="SW1A 1AA">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="co-panel" style="margin-top:20px">
+          <h2 class="co-section-title">Payment details</h2>
+          <form action="/checkout/payment" method="POST">
+            <div class="form-group">
+              <label class="form-label" for="card-name">Name on card</label>
+              <input class="form-input" type="text" id="card-name" name="cardName" placeholder="Jane Smith" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="card-number">Card number</label>
+              <div class="card-input-wrap">
+                <input class="form-input" type="text" id="card-number" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                <span class="card-icons">💳</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="card-expiry">Expiry date</label>
+                <input class="form-input" type="text" id="card-expiry" name="cardExpiry" placeholder="MM / YY" maxlength="7" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="card-cvc">CVC</label>
+                <input class="form-input" type="text" id="card-cvc" name="cardCvc" placeholder="123" maxlength="4" required>
+              </div>
+            </div>
+
+            <div class="co-secure-note">
+              🔒 Your payment information is encrypted and secure.
+            </div>
+
+            <div class="co-btn-row">
+              <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
+              <button type="submit" class="btn btn-primary">Place order · £{{total}}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {{!-- Right: Order summary --}}
+      <div class="co-summary">
+        <h2 class="cart-summary-title">Order Summary</h2>
+        {{#each cart}}
+        <div class="co-summary-item">
+          <span class="co-summary-emoji">{{emoji}}</span>
+          <div class="co-summary-info">
+            <p class="co-summary-name">{{name}}</p>
+            <p class="co-summary-meta">{{size}} · {{colour}} × {{quantity}}</p>
+          </div>
+          <span class="co-summary-price">£{{itemTotal upfrontPrice quantity}}</span>
+        </div>
+        {{/each}}
+        <div class="cart-summary-row" style="margin-top:12px">
+          <span>Subtotal</span> <span>£{{total}}</span>
+        </div>
+        <div class="cart-summary-row">
+          <span>Delivery</span> <span style="color:#2E7D32;font-weight:600">Free</span>
+        </div>
+        <div class="cart-summary-total">
+          <span>Total</span> <span>£{{total}}</span>
+        </div>
+
+        <div class="co-ship-summary">
+          <p style="font-size:0.78rem;font-weight:600;color:var(--pp-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Shipping to</p>
+          <p style="font-size:0.9rem;color:var(--pp-navy);font-weight:600">{{shipping.firstName}} {{shipping.lastName}}</p>
+          <p style="font-size:0.85rem;color:var(--pp-muted)">{{shipping.line1}}{{#if shipping.line2}}, {{shipping.line2}}{{/if}}</p>
+          <p style="font-size:0.85rem;color:var(--pp-muted)">{{shipping.city}}, {{shipping.postcode}}</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  function toggleBilling(checkbox) {
+    document.getElementById('billing-fields').style.display = checkbox.checked ? 'none' : 'block';
+  }
+
+  // Format card number with spaces
+  document.getElementById('card-number').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').substring(0, 16);
+    this.value = v.replace(/(.{4})/g, '$1 ').trim();
+  });
+
+  // Format expiry
+  document.getElementById('card-expiry').addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').substring(0, 4);
+    if (v.length >= 3) v = v.slice(0, 2) + ' / ' + v.slice(2);
+    this.value = v;
+  });
+</script>

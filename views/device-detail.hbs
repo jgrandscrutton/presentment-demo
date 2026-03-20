@@ -1,0 +1,359 @@
+{{!-- Breadcrumb --}}
+<div style="background:#F5F7FA;border-bottom:1px solid #E0E8F0;padding:12px 0">
+  <div class="container" style="font-size:0.825rem;color:var(--pp-muted)">
+    <a href="/" style="color:var(--pp-muted)">Home</a>
+    &rsaquo; <a href="/devices" style="color:var(--pp-muted)">Devices</a>
+    &rsaquo; <span style="color:var(--pp-text)">{{device.brand}} {{device.name}}</span>
+  </div>
+</div>
+
+{{!-- Hero section --}}
+<section class="detail-hero">
+  <div class="container detail-hero-inner">
+
+    {{!-- Visual --}}
+    <div class="detail-visual">
+      {{#if device.badge}}
+        <div class="detail-badge {{#if device.badgeGold}}gold{{/if}}">{{device.badge}}</div>
+      {{/if}}
+      <div class="detail-emoji">{{device.emoji}}</div>
+
+      {{!-- Colour picker --}}
+      <div class="detail-colours">
+        <p class="detail-label">Colour</p>
+        <div class="colour-options">
+          {{#each device.colours}}
+          <button class="colour-pill {{#if @first}}active{{/if}}" data-colour="{{this}}">{{this}}</button>
+
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Storage picker --}}
+      <div class="detail-storage" style="margin-top:16px">
+        <p class="detail-label">Storage</p>
+        <div class="storage-options">
+          {{#each device.storage}}
+          <button
+            class="storage-pill {{#if @first}}active{{/if}}"
+            data-upfront="{{upfrontPrice}}">
+            {{size}}
+          </button>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+
+    {{!-- Info --}}
+    <div class="detail-info">
+      <p class="product-card-brand" style="font-size:0.9rem;margin-bottom:6px">{{device.brand}}</p>
+      <h1 class="detail-title">{{device.name}}</h1>
+      <p class="detail-tagline">{{device.tagline}}</p>
+
+      <div class="detail-price-block">
+        <div>
+          <div class="detail-price">£<span id="price-upfront">{{device.upfrontPrice}}</span></div>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button id="add-to-basket" class="btn btn-primary" style="flex:1">Add to basket</button>
+      </div>
+      <div id="basket-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
+
+      <div class="detail-trust">
+        <span>🔒 Secure checkout</span>
+        <span>🚚 Free next-day delivery</span>
+        <span>↩️ 30-day returns</span>
+      </div>
+
+      {{!-- Highlights --}}
+      <div class="detail-highlights">
+        <p class="detail-label" style="margin-bottom:10px">Why you'll love it</p>
+        <ul class="highlights-list">
+          {{#each device.highlights}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{{!-- Description + Full specs --}}
+<section class="section" style="padding:56px 0">
+  <div class="container detail-body-grid">
+
+    <div>
+      <h2 class="section-title" style="font-size:1.5rem;margin-bottom:16px">About this device</h2>
+      <p style="color:var(--pp-muted);line-height:1.8;font-size:0.95rem">{{device.description}}</p>
+
+      {{!-- Recommended plans --}}
+      <div class="detail-plan-chips" style="margin-top:32px">
+        <p class="detail-label" style="margin-bottom:10px">Available on</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          {{#each device.plans}}
+          <a href="/plans" class="plan-chip">{{this}}</a>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+
+    <div class="spec-table-wrap">
+      <h2 class="section-title" style="font-size:1.5rem;margin-bottom:16px">Full specifications</h2>
+      <table class="spec-table">
+        <tbody>
+          {{#each fullSpecsArray}}
+          <tr>
+            <th>{{label}}</th>
+            <td>{{value}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+
+{{!-- Related devices --}}
+{{#if related.length}}
+<section class="section bg-gray" style="padding:56px 0">
+  <div class="container">
+    <h2 class="section-title" style="font-size:1.5rem;margin-bottom:8px">You might also like</h2>
+    <p class="section-subtitle">More {{device.category}} devices</p>
+    <div class="product-grid">
+      {{#each related}}
+      <div class="product-card">
+        <div class="product-card-image">
+          {{#if badge}}
+            <span class="product-badge {{#if badgeGold}}gold{{/if}}">{{badge}}</span>
+          {{/if}}
+          {{emoji}}
+        </div>
+        <div class="product-card-body">
+          <p class="product-card-brand">{{brand}}</p>
+          <p class="product-card-name">{{name}}</p>
+          <p class="product-card-desc">{{tagline}}</p>
+          <div class="product-card-footer">
+            <div>
+              <div class="product-price">£{{monthlyPrice}}<span class="product-price-sub">/mo</span></div>
+              <div class="product-price-sub">or £{{upfrontPrice}} upfront</div>
+            </div>
+            <a href="/devices/{{id}}" class="btn btn-primary" style="padding:10px 20px;font-size:0.85rem">View</a>
+          </div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</section>
+{{/if}}
+
+<style>
+  /* ── Detail hero ─────────────────────────────── */
+  .detail-hero { background: var(--pp-white); padding: 48px 0; border-bottom: 1px solid #E0E8F0; }
+  .detail-hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: flex-start;
+  }
+
+  .detail-visual {
+    background: var(--pp-light);
+    border-radius: 20px;
+    padding: 40px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    text-align: center;
+  }
+  .detail-badge {
+    position: absolute;
+    top: 16px; left: 16px;
+    background: var(--pp-navy);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .detail-badge.gold { background: var(--pp-gold); color: var(--pp-navy); }
+  .detail-emoji { font-size: 8rem; line-height: 1; margin-bottom: 28px; filter: drop-shadow(0 8px 24px rgba(0,48,135,0.15)); }
+
+  .detail-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pp-muted); margin-bottom: 8px; }
+
+  .colour-options, .storage-options { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .colour-pill, .storage-pill {
+    padding: 6px 14px;
+    border-radius: 50px;
+    border: 2px solid #C8D8E8;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--pp-text);
+  }
+  .colour-pill.active, .storage-pill.active { border-color: var(--pp-navy); background: var(--pp-navy); color: #fff; }
+  .colour-pill:hover:not(.active), .storage-pill:hover:not(.active) { border-color: var(--pp-blue); color: var(--pp-blue); }
+
+  /* ── Detail info ─────────────────────────────── */
+  .detail-title { font-size: 2.2rem; font-weight: 800; color: var(--pp-navy); margin-bottom: 10px; line-height: 1.15; }
+  .detail-tagline { color: var(--pp-muted); font-size: 1rem; margin-bottom: 28px; line-height: 1.6; }
+
+  .detail-price-block {
+    background: var(--pp-gray);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .detail-price { font-size: 2.4rem; font-weight: 800; color: var(--pp-navy); line-height: 1; }
+  .detail-price .price-unit { font-size: 1rem; font-weight: 500; color: var(--pp-muted); }
+
+  .detail-actions { display: flex; gap: 12px; margin-bottom: 16px; }
+
+  .detail-trust {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--pp-muted);
+    padding: 14px 0;
+    border-top: 1px solid #E0E8F0;
+    border-bottom: 1px solid #E0E8F0;
+    margin-bottom: 24px;
+  }
+
+  .highlights-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .highlights-list li {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; color: var(--pp-text);
+  }
+  .highlights-list li::before {
+    content: '✓';
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    background: var(--pp-navy); color: #fff;
+    border-radius: 50%; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* ── Body grid ───────────────────────────────── */
+  .detail-body-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: flex-start;
+  }
+
+  /* ── Spec table ──────────────────────────────── */
+  .spec-table-wrap { }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .spec-table th, .spec-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #E8EFF5; vertical-align: top; }
+  .spec-table th { color: var(--pp-muted); font-weight: 600; width: 38%; background: var(--pp-gray); }
+  .spec-table td { color: var(--pp-text); }
+  .spec-table tr:last-child th, .spec-table tr:last-child td { border-bottom: none; }
+
+  /* ── Plan chips ──────────────────────────────── */
+  .plan-chip {
+    display: inline-block;
+    padding: 6px 16px;
+    background: var(--pp-light);
+    color: var(--pp-navy);
+    border-radius: 50px;
+    font-size: 0.825rem;
+    font-weight: 600;
+    border: 1px solid #C8D8E8;
+    transition: all 0.15s ease;
+  }
+  .plan-chip:hover { background: var(--pp-navy); color: #fff; border-color: var(--pp-navy); }
+
+  /* ── Responsive ──────────────────────────────── */
+  @media (max-width: 860px) {
+    .detail-hero-inner, .detail-body-grid { grid-template-columns: 1fr; gap: 32px; }
+    .detail-title { font-size: 1.8rem; }
+    .detail-emoji { font-size: 6rem; }
+  }
+  @media (max-width: 500px) {
+    .detail-actions { flex-direction: column; }
+    .detail-trust { gap: 10px; }
+  }
+</style>
+
+<script>
+  let selectedColour = document.querySelector('.colour-pill.active')?.dataset.colour || '';
+
+  document.querySelectorAll('.colour-options').forEach(group => {
+    group.querySelectorAll('.colour-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        group.querySelectorAll('.colour-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedColour = pill.dataset.colour;
+      });
+    });
+  });
+
+  const upfrontEl = document.getElementById('price-upfront');
+  let selectedStorageIndex = 0;
+
+  document.querySelectorAll('.storage-options').forEach(group => {
+    group.querySelectorAll('.storage-pill').forEach((pill, index) => {
+      pill.addEventListener('click', () => {
+        group.querySelectorAll('.storage-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedStorageIndex = index;
+        upfrontEl.textContent = pill.dataset.upfront;
+      });
+    });
+  });
+
+  const addBtn = document.getElementById('add-to-basket');
+  const feedback = document.getElementById('basket-feedback');
+  const cartCountEl = document.querySelector('.nav-cart-count');
+
+  addBtn.addEventListener('click', async () => {
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
+
+    const res = await fetch('/cart/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: '{{device.id}}', storageIndex: selectedStorageIndex, colour: selectedColour }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Update cart count badge
+      if (cartCountEl) {
+        cartCountEl.textContent = data.cartCount;
+      } else {
+        const cartLink = document.querySelector('.nav-cart');
+        const badge = document.createElement('span');
+        badge.className = 'nav-cart-count';
+        badge.textContent = data.cartCount;
+        cartLink.appendChild(badge);
+      }
+
+      feedback.textContent = '✓ Added to basket';
+      feedback.style.display = 'block';
+      feedback.style.background = '#E8F5E9';
+      feedback.style.color = '#2E7D32';
+    } else {
+      feedback.textContent = 'Something went wrong. Please try again.';
+      feedback.style.display = 'block';
+      feedback.style.background = '#FFEBEE';
+      feedback.style.color = '#C62828';
+    }
+
+    addBtn.disabled = false;
+    addBtn.textContent = 'Add to basket';
+
+    setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+  });
+</script>

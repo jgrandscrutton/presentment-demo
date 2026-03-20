@@ -1,0 +1,102 @@
+{{!-- Checkout header --}}
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:40px 0 32px">
+  <div class="container">
+    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
+      <a href="/" style="color:inherit">Home</a> &rsaquo; <a href="/cart" style="color:inherit">Basket</a> &rsaquo; Checkout
+    </p>
+    <h1 style="font-size:2rem;font-weight:800;margin-bottom:20px">Checkout</h1>
+    <div class="co-steps">
+      <div class="co-step co-step--done"><span class="co-step-num">✓</span> Account</div>
+      <div class="co-step-divider co-step-divider--done"></div>
+      <div class="co-step co-step--active"><span class="co-step-num">2</span> Shipping</div>
+      <div class="co-step-divider"></div>
+      <div class="co-step"><span class="co-step-num">3</span> Payment</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding:48px 0">
+  <div class="container">
+    <div class="co-layout">
+
+      {{!-- Left: Shipping form --}}
+      <div class="co-main">
+        <div class="co-panel" style="border-radius:var(--radius)">
+          <h2 class="co-section-title">Shipping address</h2>
+          <form action="/checkout/shipping" method="POST">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="ship-first">First name</label>
+                <input class="form-input" type="text" id="ship-first" name="firstName" placeholder="Jane" value="{{shipping.firstName}}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ship-last">Last name</label>
+                <input class="form-input" type="text" id="ship-last" name="lastName" placeholder="Smith" value="{{shipping.lastName}}" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ship-phone">Phone number</label>
+              <input class="form-input" type="tel" id="ship-phone" name="phone" placeholder="+44 7700 900000" value="{{shipping.phone}}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ship-line1">Address line 1</label>
+              <input class="form-input" type="text" id="ship-line1" name="line1" placeholder="123 High Street" value="{{shipping.line1}}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ship-line2">Address line 2 <span style="font-weight:400;color:var(--pp-muted)">(optional)</span></label>
+              <input class="form-input" type="text" id="ship-line2" name="line2" placeholder="Flat 4" value="{{shipping.line2}}">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="ship-city">City</label>
+                <input class="form-input" type="text" id="ship-city" name="city" placeholder="London" value="{{shipping.city}}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ship-postcode">Postcode</label>
+                <input class="form-input" type="text" id="ship-postcode" name="postcode" placeholder="SW1A 1AA" value="{{shipping.postcode}}" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ship-country">Country</label>
+              <select class="form-input" id="ship-country" name="country">
+                <option value="GB" selected>United Kingdom</option>
+                <option value="IE">Ireland</option>
+                <option value="US">United States</option>
+              </select>
+            </div>
+
+            <div class="co-btn-row">
+              <a href="/checkout" class="btn btn-outline">← Back</a>
+              <button type="submit" class="btn btn-primary">Continue to payment →</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {{!-- Right: Order summary --}}
+      <div class="co-summary">
+        <h2 class="cart-summary-title">Order Summary</h2>
+        {{#each cart}}
+        <div class="co-summary-item">
+          <span class="co-summary-emoji">{{emoji}}</span>
+          <div class="co-summary-info">
+            <p class="co-summary-name">{{name}}</p>
+            <p class="co-summary-meta">{{size}} · {{colour}} × {{quantity}}</p>
+          </div>
+          <span class="co-summary-price">£{{itemTotal upfrontPrice quantity}}</span>
+        </div>
+        {{/each}}
+        <div class="cart-summary-row" style="margin-top:12px">
+          <span>Subtotal</span> <span>£{{total}}</span>
+        </div>
+        <div class="cart-summary-row">
+          <span>Delivery</span> <span style="color:#2E7D32;font-weight:600">Free</span>
+        </div>
+        <div class="cart-summary-total">
+          <span>Total</span> <span>£{{total}}</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>

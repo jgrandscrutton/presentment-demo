@@ -1,0 +1,91 @@
+{{!-- Page header --}}
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:56px 0 40px">
+  <div class="container">
+    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
+      <a href="/" style="color:inherit">Home</a> &rsaquo; Devices
+    </p>
+    <h1 style="font-size:2.4rem;font-weight:800;margin-bottom:10px">All Devices</h1>
+    <p style="opacity:0.8;font-size:1.05rem">Find your perfect phone. Filter by category or browse the full range.</p>
+  </div>
+</section>
+
+{{!-- Filter bar --}}
+<div style="background:#fff;border-bottom:1px solid #E0E8F0;position:sticky;top:68px;z-index:90">
+  <div class="container" style="display:flex;align-items:center;gap:10px;padding-top:14px;padding-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:0.85rem;font-weight:600;color:var(--pp-muted);margin-right:4px">Filter:</span>
+    <a href="/devices"
+       class="filter-pill {{#if (eq activeCategory 'all')}}active{{/if}}">
+      All
+    </a>
+    <a href="/devices?category=flagship"
+       class="filter-pill {{#if (eq activeCategory 'flagship')}}active{{/if}}">
+      Flagship
+    </a>
+    <a href="/devices?category=midrange"
+       class="filter-pill {{#if (eq activeCategory 'midrange')}}active{{/if}}">
+      Mid-range
+    </a>
+    <a href="/devices?category=budget"
+       class="filter-pill {{#if (eq activeCategory 'budget')}}active{{/if}}">
+      Budget
+    </a>
+  </div>
+</div>
+
+{{!-- Device grid --}}
+<section class="section">
+  <div class="container">
+    {{#if devices.length}}
+    <p style="color:var(--pp-muted);font-size:0.875rem;margin-bottom:24px">Showing {{devices.length}} device{{#if (gt devices.length 1)}}s{{/if}}</p>
+    <div class="product-grid">
+      {{#each devices}}
+      <a href="/devices/{{id}}" class="product-card">
+        <div class="product-card-image">
+          {{#if badge}}
+            <span class="product-badge {{#if badgeGold}}gold{{/if}}">{{badge}}</span>
+          {{/if}}
+          {{emoji}}
+        </div>
+        <div class="product-card-body">
+          <p class="product-card-brand">{{brand}}</p>
+          <p class="product-card-name">{{name}}</p>
+          <p class="product-card-desc">{{tagline}}</p>
+
+          <ul style="list-style:none;margin-bottom:16px;display:flex;flex-direction:column;gap:4px">
+            {{#each specs}}
+            <li style="font-size:0.78rem;color:var(--pp-muted);display:flex;align-items:center;gap:6px">
+              <span style="color:var(--pp-blue);font-weight:700">·</span> {{this}}
+            </li>
+            {{/each}}
+          </ul>
+
+          <div class="product-card-footer">
+            <div>
+              <div class="product-price-sub" style="margin-bottom:2px">From</div>
+              <div class="product-price">£{{upfrontPrice}}</div>
+            </div>
+          </div>
+        </div>
+      </a>
+      {{/each}}
+    </div>
+    {{else}}
+    <p style="color:var(--pp-muted)">No devices found in this category.</p>
+    {{/if}}
+  </div>
+</section>
+
+<style>
+  .filter-pill {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 2px solid #E0E8F0;
+    color: var(--pp-text);
+    transition: all 0.2s ease;
+  }
+  .filter-pill:hover  { border-color: var(--pp-blue); color: var(--pp-blue); }
+  .filter-pill.active { background: var(--pp-navy); border-color: var(--pp-navy); color: #fff; }
+</style>

@@ -1,0 +1,32 @@
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:40px 0 32px">
+  <div class="container">
+    <h1 style="font-size:2rem;font-weight:800">Order Confirmed</h1>
+  </div>
+</section>
+
+<section class="section" style="padding:64px 0;text-align:center">
+  <div class="container" style="max-width:560px">
+    <div style="font-size:4rem;margin-bottom:16px">🎉</div>
+    <h2 style="font-size:1.8rem;font-weight:800;color:var(--pp-navy);margin-bottom:12px">Thank you for your order!</h2>
+    <p style="color:var(--pp-muted);margin-bottom:32px">We've received your order and will send a confirmation to <strong>{{order.account.email}}</strong>.</p>
+
+    <div style="background:#fff;border:1px solid #E0E8F0;border-radius:var(--radius);padding:28px;text-align:left;margin-bottom:32px">
+      <h3 style="font-size:1rem;font-weight:700;color:var(--pp-navy);margin-bottom:16px">Order summary</h3>
+      {{#each order.cart}}
+      <div class="co-summary-item">
+        <span class="co-summary-emoji">{{emoji}}</span>
+        <div class="co-summary-info">
+          <p class="co-summary-name">{{name}}</p>
+          <p class="co-summary-meta">{{size}} · {{colour}} × {{quantity}}</p>
+        </div>
+        <span class="co-summary-price">£{{itemTotal upfrontPrice quantity}}</span>
+      </div>
+      {{/each}}
+      <div class="cart-summary-total" style="margin-top:16px">
+        <span>Total paid</span><span>£{{order.total}}</span>
+      </div>
+    </div>
+
+    <a href="/devices" class="btn btn-primary">Continue shopping</a>
+  </div>
+</section>

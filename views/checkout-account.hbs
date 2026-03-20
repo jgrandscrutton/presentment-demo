@@ -1,0 +1,127 @@
+{{!-- Checkout header --}}
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:40px 0 32px">
+  <div class="container">
+    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
+      <a href="/" style="color:inherit">Home</a> &rsaquo; <a href="/cart" style="color:inherit">Basket</a> &rsaquo; Checkout
+    </p>
+    <h1 style="font-size:2rem;font-weight:800;margin-bottom:20px">Checkout</h1>
+    <div class="co-steps">
+      <div class="co-step co-step--active"><span class="co-step-num">1</span> Account</div>
+      <div class="co-step-divider"></div>
+      <div class="co-step"><span class="co-step-num">2</span> Shipping</div>
+      <div class="co-step-divider"></div>
+      <div class="co-step"><span class="co-step-num">3</span> Payment</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding:48px 0">
+  <div class="container">
+    <div class="co-layout">
+
+      {{!-- Left: Account options --}}
+      <div class="co-main">
+        <div class="co-tabs">
+          <a href="/checkout?tab=guest" class="co-tab {{#if (eq tab 'guest')}}co-tab--active{{/if}}">Guest</a>
+          <a href="/checkout?tab=login" class="co-tab {{#if (eq tab 'login')}}co-tab--active{{/if}}">Sign in</a>
+          <a href="/checkout?tab=create" class="co-tab {{#if (eq tab 'create')}}co-tab--active{{/if}}">Create account</a>
+        </div>
+
+        {{!-- Guest --}}
+        {{#if (eq tab 'guest')}}
+        <div class="co-panel">
+          <p style="color:var(--pp-muted);margin-bottom:24px;font-size:0.9rem">Enter your email to continue as a guest. No account required.</p>
+          <form action="/checkout/account" method="POST">
+            <input type="hidden" name="type" value="guest">
+            <div class="form-group">
+              <label class="form-label" for="guest-email">Email address</label>
+              <input class="form-input" type="email" id="guest-email" name="email" placeholder="you@example.com" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Continue as guest</button>
+          </form>
+        </div>
+        {{/if}}
+
+        {{!-- Sign in --}}
+        {{#if (eq tab 'login')}}
+        <div class="co-panel">
+          <p style="color:var(--pp-muted);margin-bottom:24px;font-size:0.9rem">Welcome back. Sign in to access your saved details.</p>
+          <form action="/checkout/account" method="POST">
+            <input type="hidden" name="type" value="login">
+            <div class="form-group">
+              <label class="form-label" for="login-email">Email address</label>
+              <input class="form-input" type="email" id="login-email" name="email" placeholder="you@example.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password</label>
+              <input class="form-input" type="password" id="login-password" name="password" placeholder="••••••••" required>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" id="remember" name="remember" value="1">
+              <label for="remember">Remember me on this device</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px">Sign in &amp; continue</button>
+            <p style="text-align:center;margin-top:12px;font-size:0.85rem;color:var(--pp-muted)">
+              <a href="#" style="color:var(--pp-blue)">Forgot password?</a>
+            </p>
+          </form>
+        </div>
+        {{/if}}
+
+        {{!-- Create account --}}
+        {{#if (eq tab 'create')}}
+        <div class="co-panel">
+          <p style="color:var(--pp-muted);margin-bottom:24px;font-size:0.9rem">Create an account for faster checkout next time.</p>
+          <form action="/checkout/account" method="POST">
+            <input type="hidden" name="type" value="create">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="first-name">First name</label>
+                <input class="form-input" type="text" id="first-name" name="firstName" placeholder="Jane" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="last-name">Last name</label>
+                <input class="form-input" type="text" id="last-name" name="lastName" placeholder="Smith" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="create-email">Email address</label>
+              <input class="form-input" type="email" id="create-email" name="email" placeholder="you@example.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="create-password">Password</label>
+              <input class="form-input" type="password" id="create-password" name="password" placeholder="At least 8 characters" required minlength="8">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Create account &amp; continue</button>
+          </form>
+        </div>
+        {{/if}}
+      </div>
+
+      {{!-- Right: Order summary --}}
+      <div class="co-summary">
+        <h2 class="cart-summary-title">Order Summary</h2>
+        {{#each cart}}
+        <div class="co-summary-item">
+          <span class="co-summary-emoji">{{emoji}}</span>
+          <div class="co-summary-info">
+            <p class="co-summary-name">{{name}}</p>
+            <p class="co-summary-meta">{{size}} · {{colour}} × {{quantity}}</p>
+          </div>
+          <span class="co-summary-price">£{{itemTotal upfrontPrice quantity}}</span>
+        </div>
+        {{/each}}
+        <div class="cart-summary-row" style="margin-top:12px">
+          <span>Subtotal</span><span>£{{total}}</span>
+        </div>
+        <div class="cart-summary-row">
+          <span>Delivery</span><span style="color:#2E7D32;font-weight:600">Free</span>
+        </div>
+        <div class="cart-summary-total">
+          <span>Total</span><span>£{{total}}</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>

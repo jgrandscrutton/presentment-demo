@@ -1,0 +1,171 @@
+{{!-- Page header --}}
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:56px 0 40px">
+  <div class="container">
+    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
+      <a href="/" style="color:inherit">Home</a> &rsaquo; Basket
+    </p>
+    <h1 style="font-size:2.4rem;font-weight:800;margin-bottom:10px">Your Basket</h1>
+  </div>
+</section>
+
+<section class="section" style="padding:48px 0">
+  <div class="container">
+
+    {{#if isEmpty}}
+    <div class="cart-empty">
+      <div style="font-size:4rem;margin-bottom:16px">🛒</div>
+      <h2 style="font-size:1.5rem;font-weight:700;color:var(--pp-navy);margin-bottom:8px">Your basket is empty</h2>
+      <p style="color:var(--pp-muted);margin-bottom:28px">Browse our range of devices and add something you love.</p>
+      <a href="/devices" class="btn btn-primary">Shop devices</a>
+    </div>
+    {{else}}
+    <div class="cart-layout">
+
+      {{!-- Items --}}
+      <div class="cart-items">
+        {{#each cart}}
+        <div class="cart-item">
+          <div class="cart-item-emoji">{{emoji}}</div>
+          <div class="cart-item-info">
+            <p class="cart-item-brand">{{brand}}</p>
+            <p class="cart-item-name">{{name}} <span class="cart-item-size">{{size}} · {{colour}}</span></p>
+            <p class="cart-item-price">£{{upfrontPrice}}</p>
+          </div>
+          <div class="cart-item-controls">
+            <form action="/cart/update" method="POST" class="qty-form">
+              <input type="hidden" name="deviceId" value="{{deviceId}}">
+              <input type="hidden" name="size" value="{{size}}">
+              <input type="hidden" name="colour" value="{{colour}}">
+              <button type="submit" class="qty-btn" name="quantity" value="{{decremented quantity}}">−</button>
+              <span class="qty-value">{{quantity}}</span>
+              <button type="submit" class="qty-btn" name="quantity" value="{{incremented quantity}}">+</button>
+            </form>
+            <form action="/cart/remove" method="POST">
+              <input type="hidden" name="deviceId" value="{{deviceId}}">
+              <input type="hidden" name="size" value="{{size}}">
+              <input type="hidden" name="colour" value="{{colour}}">
+              <button type="submit" class="cart-remove">Remove</button>
+            </form>
+          </div>
+          <div class="cart-item-subtotal">£{{itemTotal upfrontPrice quantity}}</div>
+        </div>
+        {{/each}}
+      </div>
+
+      {{!-- Summary --}}
+      <div class="cart-summary">
+        <h2 class="cart-summary-title">Order Summary</h2>
+        <div class="cart-summary-row">
+          <span>Subtotal</span>
+          <span>£{{total}}</span>
+        </div>
+        <div class="cart-summary-row">
+          <span>Delivery</span>
+          <span style="color:#2E7D32;font-weight:600">Free</span>
+        </div>
+        <div class="cart-summary-total">
+          <span>Total</span>
+          <span>£{{total}}</span>
+        </div>
+        <a href="/checkout" class="btn btn-primary" style="display:block;text-align:center;margin-top:20px">Checkout</a>
+        <a href="/devices" class="btn btn-outline" style="display:block;text-align:center;margin-top:10px">Continue shopping</a>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:0.78rem;color:var(--pp-muted)">
+          🔒 Secure checkout powered by PayPal
+        </div>
+      </div>
+
+    </div>
+    {{/if}}
+
+  </div>
+</section>
+
+<style>
+  .cart-empty { text-align: center; padding: 60px 0; }
+
+  .cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 32px;
+    align-items: flex-start;
+  }
+
+  /* Items */
+  .cart-items { display: flex; flex-direction: column; gap: 16px; }
+
+  .cart-item {
+    display: grid;
+    grid-template-columns: 64px 1fr auto auto;
+    align-items: center;
+    gap: 20px;
+    background: #fff;
+    border: 1px solid #E0E8F0;
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .cart-item-emoji { font-size: 2.8rem; text-align: center; }
+  .cart-item-brand { font-size: 0.75rem; font-weight: 600; color: var(--pp-blue); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .cart-item-name  { font-size: 1rem; font-weight: 700; color: var(--pp-navy); }
+  .cart-item-size  { font-size: 0.8rem; font-weight: 500; color: var(--pp-muted); }
+  .cart-item-price { font-size: 0.875rem; color: var(--pp-muted); margin-top: 4px; }
+
+  .cart-item-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+  .qty-form { display: flex; align-items: center; gap: 10px; }
+  .qty-btn {
+    width: 30px; height: 30px;
+    border: 2px solid #E0E8F0;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--pp-navy);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s ease;
+    padding: 0;
+  }
+  .qty-btn:hover { border-color: var(--pp-navy); background: var(--pp-navy); color: #fff; }
+  .qty-value { font-weight: 700; font-size: 1rem; min-width: 20px; text-align: center; }
+
+  .cart-remove {
+    background: none; border: none; color: var(--pp-muted);
+    font-size: 0.78rem; cursor: pointer; text-decoration: underline;
+    padding: 0;
+  }
+  .cart-remove:hover { color: #c0392b; }
+
+  .cart-item-subtotal { font-size: 1.15rem; font-weight: 800; color: var(--pp-navy); white-space: nowrap; }
+
+  /* Summary */
+  .cart-summary {
+    background: #fff;
+    border: 1px solid #E0E8F0;
+    border-radius: var(--radius);
+    padding: 28px;
+    position: sticky;
+    top: 90px;
+  }
+  .cart-summary-title { font-size: 1.1rem; font-weight: 700; color: var(--pp-navy); margin-bottom: 20px; }
+  .cart-summary-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.9rem; color: var(--pp-muted);
+    padding: 8px 0; border-bottom: 1px solid #F0F4F8;
+  }
+  .cart-summary-total {
+    display: flex; justify-content: space-between;
+    font-size: 1.1rem; font-weight: 800; color: var(--pp-navy);
+    padding: 16px 0 0;
+  }
+
+  @media (max-width: 860px) {
+    .cart-layout { grid-template-columns: 1fr; }
+    .cart-summary { position: static; }
+  }
+  @media (max-width: 600px) {
+    .cart-item { grid-template-columns: 48px 1fr; grid-template-rows: auto auto; }
+    .cart-item-controls { flex-direction: row; grid-column: 2; }
+    .cart-item-subtotal { grid-column: 2; }
+  }
+</style>
