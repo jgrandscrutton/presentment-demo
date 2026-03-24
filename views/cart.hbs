@@ -68,6 +68,9 @@
           <span>£{{total}}</span>
         </div>
         <a href="/checkout" class="btn btn-primary" style="display:block;text-align:center;margin-top:20px">Checkout</a>
+        <div id="paypal-button-container" style="margin-top:12px"></div>
+        <div id="paylater-button-container" style="margin-top:8px"></div>
+        <div id="paypal-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
         <a href="/devices" class="btn btn-outline" style="display:block;text-align:center;margin-top:10px">Continue shopping</a>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:0.78rem;color:var(--pp-muted)">
           🔒 Secure checkout powered by PayPal
@@ -169,3 +172,63 @@
     .cart-item-subtotal { grid-column: 2; }
   }
 </style>
+
+{{#unless isEmpty}}
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&enable-funding=paylater&buyer-country={{paypalBuyerCountry}}"></script>
+<script>
+  const paypalFeedback = document.getElementById('paypal-feedback');
+
+  const createCartOrder = async () => {
+    const res = await fetch('/api/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'cart' }),
+    });
+    const data = await res.json();
+    return data.id;
+  };
+
+  const onCartApprove = async (data) => {
+    const res = await fetch('/api/paypal/capture-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderID: data.orderID, type: 'cart' }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      window.location.href = '/checkout/confirmation';
+    } else {
+      paypalFeedback.textContent = 'Payment could not be confirmed. Please try again.';
+      paypalFeedback.style.display = 'block';
+      paypalFeedback.style.background = '#FFEBEE';
+      paypalFeedback.style.color = '#C62828';
+    }
+  };
+
+  const onCartError = () => {
+    paypalFeedback.textContent = 'Payment failed. Please try again.';
+    paypalFeedback.style.display = 'block';
+    paypalFeedback.style.background = '#FFEBEE';
+    paypalFeedback.style.color = '#C62828';
+  };
+
+  paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYPAL,
+    style: { shape: 'pill', label: 'buynow', height: 45 },
+    createOrder: createCartOrder,
+    onApprove: onCartApprove,
+    onError: onCartError,
+  }).render('#paypal-button-container');
+
+  const payLaterButton = paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYLATER,
+    style: { shape: 'pill', height: 45 },
+    createOrder: createCartOrder,
+    onApprove: onCartApprove,
+    onError: onCartError,
+  });
+  if (payLaterButton.isEligible()) {
+    payLaterButton.render('#paylater-button-container');
+  }
+</script>
+{{/unless}}

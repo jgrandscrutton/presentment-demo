@@ -5,4 +5,6 @@ router.get('/', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
+router.use('/paypal', require('./paypal'));
+
 module.exports = router;

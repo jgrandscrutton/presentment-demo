@@ -28,11 +28,13 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-// Make cart available to all views
+// Make cart count and PayPal client ID available to all views
 app.use((req, res, next) => {
   const cart = req.session.cart || [];
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   res.locals.cartCount = cartCount;
+  res.locals.paypalClientId = process.env.PAYPAL_CLIENT_ID || '';
+  res.locals.paypalBuyerCountry = process.env.PAYPAL_BUYER_COUNTRY || 'GB';
   next();
 });
 

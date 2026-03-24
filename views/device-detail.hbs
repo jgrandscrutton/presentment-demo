@@ -59,6 +59,8 @@
       <div class="detail-actions">
         <button id="add-to-basket" class="btn btn-primary" style="flex:1">Add to basket</button>
       </div>
+      <div id="paypal-button-container" style="margin-top:12px"></div>
+      <div id="paylater-button-container" style="margin-top:8px"></div>
       <div id="basket-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
 
       <div class="detail-trust">
@@ -356,4 +358,68 @@
 
     setTimeout(() => { feedback.style.display = 'none'; }, 3000);
   });
+</script>
+
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&enable-funding=paylater&buyer-country={{paypalBuyerCountry}}"></script>
+<script>
+  const createDeviceOrder = async () => {
+    const res = await fetch('/api/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'device',
+        deviceId: '{{device.id}}',
+        storageIndex: selectedStorageIndex,
+        colour: selectedColour,
+      }),
+    });
+    const data = await res.json();
+    return data.id;
+  };
+
+  const onDeviceApprove = async (data) => {
+    const res = await fetch('/api/paypal/capture-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderID: data.orderID, type: 'device' }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      feedback.textContent = '✓ Payment successful! Order ID: ' + result.orderID;
+      feedback.style.display = 'block';
+      feedback.style.background = '#E8F5E9';
+      feedback.style.color = '#2E7D32';
+    } else {
+      feedback.textContent = 'Payment could not be confirmed. Please try again.';
+      feedback.style.display = 'block';
+      feedback.style.background = '#FFEBEE';
+      feedback.style.color = '#C62828';
+    }
+  };
+
+  const onDeviceError = () => {
+    feedback.textContent = 'Payment failed. Please try again.';
+    feedback.style.display = 'block';
+    feedback.style.background = '#FFEBEE';
+    feedback.style.color = '#C62828';
+  };
+
+  paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYPAL,
+    style: { shape: 'pill', label: 'buynow', height: 41 },
+    createOrder: createDeviceOrder,
+    onApprove: onDeviceApprove,
+    onError: onDeviceError,
+  }).render('#paypal-button-container');
+
+  const payLaterButton = paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYLATER,
+    style: { shape: 'pill', height: 41 },
+    createOrder: createDeviceOrder,
+    onApprove: onDeviceApprove,
+    onError: onDeviceError,
+  });
+  if (payLaterButton.isEligible()) {
+    payLaterButton.render('#paylater-button-container');
+  }
 </script>
