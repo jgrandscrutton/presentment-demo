@@ -434,7 +434,7 @@
 
   const payLaterButton = paypal.Buttons({
     fundingSource: paypal.FUNDING.PAYLATER,
-    style: { shape: 'pill', height: 41 },
+    style: { shape: 'pill', color: 'gold', height: 41 },
     createOrder: createDeviceOrder,
     onApprove: onDeviceApprove,
     onError: onDeviceError,
