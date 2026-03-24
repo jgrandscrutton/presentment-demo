@@ -54,6 +54,7 @@
         <div>
           <div class="detail-price">£<span id="price-upfront">{{device.upfrontPrice}}</span></div>
         </div>
+        <div id="paypal-messaging" style="margin-top:10px"></div>
       </div>
 
       <div class="detail-actions">
@@ -212,7 +213,7 @@
   .detail-price-block {
     background: var(--pp-gray);
     border-radius: var(--radius);
-    padding: 20px 24px;
+    padding: 20px 24px 10px;
     margin-bottom: 20px;
   }
   .detail-price { font-size: 2.4rem; font-weight: 800; color: var(--pp-navy); line-height: 1; }
@@ -360,8 +361,27 @@
   });
 </script>
 
-<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&enable-funding=paylater&buyer-country={{paypalBuyerCountry}}"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&enable-funding=paylater&buyer-country={{paypalBuyerCountry}}&components=buttons,messages"></script>
 <script>
+  const messagingContainer = document.getElementById('paypal-messaging');
+
+  function renderPayLaterMessage(amount) {
+    const el = document.createElement('div');
+    messagingContainer.replaceChildren(el);
+    paypal.Messages({
+      amount,
+      placement: 'product',
+    }).render(el);
+  }
+
+  renderPayLaterMessage(parseFloat(document.getElementById('price-upfront').textContent));
+
+  document.querySelectorAll('.storage-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      renderPayLaterMessage(parseFloat(pill.dataset.upfront));
+    });
+  });
+
   const createDeviceOrder = async () => {
     const res = await fetch('/api/paypal/create-order', {
       method: 'POST',
