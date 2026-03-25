@@ -54,7 +54,14 @@
         <div>
           <div class="detail-price">£<span id="price-upfront">{{device.upfrontPrice}}</span></div>
         </div>
-        <div id="paypal-messaging" style="margin-top:10px"></div>
+        <div
+            data-pp-message
+            data-pp-style-layout="text"
+            data-pp-style-logo-type="inline"
+            data-pp-style-text-color="black"
+            data-pp-amount="{{device.upfrontPrice}}"
+            data-pp-language="">
+        </div>
       </div>
 
       <div class="detail-actions">
@@ -363,22 +370,12 @@
 
 <script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&enable-funding=paylater&buyer-country={{paypalBuyerCountry}}&components=buttons,messages"></script>
 <script>
-  const messagingContainer = document.getElementById('paypal-messaging');
-
-  function renderPayLaterMessage(amount) {
-    const el = document.createElement('div');
-    messagingContainer.replaceChildren(el);
-    paypal.Messages({
-      amount,
-      placement: 'product',
-    }).render(el);
-  }
-
-  renderPayLaterMessage(parseFloat(document.getElementById('price-upfront').textContent));
+  const ppMessage = document.querySelector('[data-pp-message]');
 
   document.querySelectorAll('.storage-pill').forEach(pill => {
     pill.addEventListener('click', () => {
-      renderPayLaterMessage(parseFloat(pill.dataset.upfront));
+      ppMessage.dataset.ppAmount = pill.dataset.upfront;
+      paypal.Messages.refresh();
     });
   });
 

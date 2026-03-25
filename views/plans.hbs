@@ -1,0 +1,113 @@
+{{!-- Hero --}}
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:56px 0 40px">
+  <div class="container">
+    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
+      <a href="/" style="color:inherit">Home</a> &rsaquo; Plans
+    </p>
+    <h1 style="font-size:2.4rem;font-weight:800;margin-bottom:10px">Choose your plan</h1>
+    <p style="opacity:0.8;font-size:1.05rem;max-width:520px">Fixed monthly plans or pay as you go — flexible to fit your life.</p>
+  </div>
+</section>
+
+{{!-- Sticky tab bar --}}
+<div class="plans-tab-bar">
+  <div class="container" style="display:flex;align-items:center;gap:10px;padding-top:14px;padding-bottom:14px">
+    <button class="tab-pill active" data-target="fixed-section">Fixed Cost</button>
+    <button class="tab-pill" data-target="payg-section">Pay As You Go</button>
+  </div>
+</div>
+
+{{!-- Fixed Cost plans --}}
+<section id="fixed-section" class="section">
+  <div class="container">
+    <p style="color:var(--pp-muted);font-size:0.875rem;margin-bottom:24px">3 plans available &mdash; save up to 10% on longer contracts</p>
+    <div class="plans-grid">
+      {{#each fixedPlans}}
+      <a href="/plans/{{id}}" class="plan-card {{#if (eq subType 'standard')}}featured{{/if}}">
+        {{#if (eq subType 'standard')}}<div class="plan-featured-tag">Most popular</div>{{/if}}
+        <div style="font-size:3rem;margin-bottom:16px">{{emoji}}</div>
+        <p class="plan-name">{{name}}</p>
+        <p class="plan-tagline">{{tagline}}</p>
+        <div class="plan-price">£{{baseMonthlyPrice}}<span>/month</span></div>
+        <p style="font-size:0.75rem;color:var(--pp-muted);margin-top:4px">from, on 1-month rolling</p>
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          {{#each features}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </a>
+      {{/each}}
+    </div>
+  </div>
+</section>
+
+{{!-- Pay As You Go plans --}}
+<section id="payg-section" class="section" style="display:none">
+  <div class="container">
+    <p style="color:var(--pp-muted);font-size:0.875rem;margin-bottom:24px">2 plans available &mdash; no fixed monthly commitment</p>
+    <div class="plans-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+      {{#each paygPlans}}
+      <a href="/plans/{{id}}" class="plan-card {{#if badge}}featured{{/if}}">
+        {{#if badge}}<div class="plan-featured-tag {{#if badgeGold}}gold-tag{{/if}}">{{badge}}</div>{{/if}}
+        <div style="font-size:3rem;margin-bottom:16px">{{emoji}}</div>
+        <p class="plan-name">{{name}}</p>
+        <p class="plan-tagline">{{tagline}}</p>
+        <div class="plan-price" style="font-size:1.5rem;line-height:1.2">Usage-based</div>
+        <p style="font-size:0.75rem;color:var(--pp-muted);margin-top:4px">No fixed monthly charge</p>
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          {{#each features}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </a>
+      {{/each}}
+    </div>
+  </div>
+</section>
+
+<style>
+  .plans-tab-bar {
+    background: #fff;
+    border-bottom: 1px solid #E0E8F0;
+    position: sticky;
+    top: 68px;
+    z-index: 90;
+  }
+  .tab-pill {
+    display: inline-block;
+    padding: 8px 22px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 2px solid #E0E8F0;
+    color: var(--pp-text);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .tab-pill:hover  { border-color: var(--pp-blue); color: var(--pp-blue); }
+  .tab-pill.active { background: var(--pp-navy); border-color: var(--pp-navy); color: #fff; }
+
+  .plan-featured-tag.gold-tag { background: var(--pp-gold); color: var(--pp-navy); }
+</style>
+
+<script>
+  const tabPills = document.querySelectorAll('.tab-pill');
+  const sections = {
+    'fixed-section': document.getElementById('fixed-section'),
+    'payg-section':  document.getElementById('payg-section'),
+  };
+
+  tabPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      tabPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const target = pill.dataset.target;
+      Object.entries(sections).forEach(([id, el]) => {
+        el.style.display = id === target ? '' : 'none';
+      });
+    });
+  });
+</script>

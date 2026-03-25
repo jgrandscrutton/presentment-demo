@@ -1,0 +1,573 @@
+{{!-- Breadcrumb --}}
+<div style="background:#F5F7FA;border-bottom:1px solid #E0E8F0;padding:12px 0">
+  <div class="container" style="font-size:0.825rem;color:var(--pp-muted)">
+    <a href="/" style="color:var(--pp-muted)">Home</a>
+    &rsaquo; <a href="/plans" style="color:var(--pp-muted)">Plans</a>
+    &rsaquo; <span style="color:var(--pp-text)">{{plan.name}}</span>
+  </div>
+</div>
+
+{{!-- Hero --}}
+<section class="detail-hero">
+  <div class="container detail-hero-inner">
+
+    {{!-- Left: configurator panel --}}
+    <div class="detail-visual">
+      {{#if plan.badge}}
+      <div class="detail-badge {{#if plan.badgeGold}}gold{{/if}}">{{plan.badge}}</div>
+      {{/if}}
+
+      <div class="plan-detail-icon">{{plan.emoji}}</div>
+      <p class="plan-name" style="font-size:1.4rem;margin-bottom:4px">{{plan.name}}</p>
+      <p class="detail-label" style="margin-bottom:24px">
+        {{#if (eq plan.type 'fixed')}}Fixed Cost Plan{{else}}Pay As You Go{{/if}}
+      </p>
+
+      {{!-- Fixed: contract length selector --}}
+      {{#if contractPrices}}
+      <div style="width:100%;text-align:left">
+        <p class="detail-label">Contract length</p>
+        <div class="contract-options">
+          {{#each contractPrices}}
+          <button
+            class="contract-pill {{#if @first}}active{{/if}}"
+            data-contract-id="{{id}}"
+            data-price="{{effectiveMonthlyPrice}}"
+            data-discount="{{discountPct}}"
+            data-label="{{label}}"
+            data-total-cycles="{{totalCycles}}">
+            <span>{{label}}</span>
+            {{#if discountPct}}<span class="pill-discount-badge">{{discountPct}}% off</span>{{/if}}
+          </button>
+          {{/each}}
+        </div>
+      </div>
+      {{/if}}
+
+      {{!-- PAYG Variable: rates grid --}}
+      {{#if (eq plan.subType 'variable')}}
+      <div class="rates-grid">
+        <div class="rate-item"><span class="rate-value">{{plan.rates.callsPerMin}}</span><span class="rate-label">per min calls</span></div>
+        <div class="rate-item"><span class="rate-value">{{plan.rates.texts}}</span><span class="rate-label">per text</span></div>
+        <div class="rate-item"><span class="rate-value">{{plan.rates.dataPerMB}}</span><span class="rate-label">per MB data</span></div>
+        <div class="rate-item"><span class="rate-value">{{plan.rates.dataPerGB}}</span><span class="rate-label">per GB (cap)</span></div>
+      </div>
+      {{/if}}
+
+      {{!-- PAYG Auto Top-up: amount + threshold selectors --}}
+      {{#if (eq plan.subType 'autotopup')}}
+      <div style="width:100%;text-align:left">
+        <p class="detail-label">Initial top-up amount</p>
+        <div class="topup-options">
+          {{#each plan.topUpAmounts}}
+          <button class="topup-pill {{#if (eq this ../plan.defaultTopUp)}}active{{/if}}" data-amount="{{this}}">£{{this}}</button>
+          {{/each}}
+        </div>
+        <p class="detail-label" style="margin-top:20px">Auto top-up when balance drops below</p>
+        <div class="threshold-options">
+          {{#each plan.thresholds}}
+          <button class="threshold-pill {{#if (eq this ../plan.defaultThreshold)}}active{{/if}}" data-threshold="{{this}}">£{{this}}</button>
+          {{/each}}
+        </div>
+      </div>
+      {{/if}}
+
+    </div>
+
+    {{!-- Right: info + price + CTA --}}
+    <div class="detail-info">
+      <p class="detail-label" style="margin-bottom:6px">
+        {{#if (eq plan.type 'fixed')}}Fixed Cost{{else}}Pay As You Go{{/if}}
+      </p>
+      <h1 class="detail-title">{{plan.name}} Plan</h1>
+      <p class="detail-tagline">{{plan.tagline}}</p>
+
+      <div class="detail-price-block">
+        {{#if contractPrices}}
+          <div style="font-size:0.8rem;color:var(--pp-muted);margin-bottom:4px">Monthly price</div>
+          <div class="detail-price">£<span id="plan-price">{{contractPrices.[0].effectiveMonthlyPrice}}</span><span class="price-unit">/month</span></div>
+          <div id="discount-badge" style="display:none;margin-top:10px">
+            <span class="saving-badge"></span>
+          </div>
+          <div id="contract-summary" style="font-size:0.8rem;color:var(--pp-muted);margin-top:8px">1-month rolling &mdash; cancel anytime</div>
+        {{else if (eq plan.subType 'variable')}}
+          <div class="detail-price" style="font-size:1.6rem">Usage-based billing</div>
+          <p style="font-size:0.85rem;color:var(--pp-muted);margin-top:8px;margin-bottom:0">No fixed monthly charge. You're billed for what you use.</p>
+        {{else}}
+          <div style="font-size:0.8rem;color:var(--pp-muted);margin-bottom:4px">Initial top-up</div>
+          <div class="detail-price">£<span id="topup-display">{{plan.defaultTopUp}}</span></div>
+          <div id="config-summary" style="font-size:0.85rem;color:var(--pp-muted);margin-top:8px;margin-bottom:0">
+            Auto top-ups of £<span id="summary-amount">{{plan.defaultTopUp}}</span>
+            when balance falls below £<span id="summary-threshold">{{plan.defaultThreshold}}</span>
+          </div>
+        {{/if}}
+      </div>
+
+      {{#if (eq plan.subType 'autotopup')}}
+      <div class="detail-actions">
+        <button id="select-plan-btn" class="btn btn-primary" style="flex:1">Select this plan</button>
+      </div>
+      {{/if}}
+
+      <div id="paypal-button-container" style="margin-top:12px"></div>
+      <div id="plan-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
+
+      <div class="detail-trust">
+        <span>🔒 Secure checkout</span>
+        <span>📱 Use on any device</span>
+        <span>↩️ Cancel anytime</span>
+      </div>
+
+      <div class="detail-highlights">
+        <p class="detail-label" style="margin-bottom:10px">What's included</p>
+        <ul class="highlights-list">
+          {{#each plan.features}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{{!-- Body --}}
+<section class="section" style="padding:56px 0">
+  <div class="container detail-body-grid">
+
+    <div>
+      <h2 style="font-size:1.5rem;font-weight:800;color:var(--pp-navy);margin-bottom:16px">About this plan</h2>
+      <p style="color:var(--pp-muted);line-height:1.8;font-size:0.95rem">{{plan.description}}</p>
+
+      {{#if (eq plan.subType 'variable')}}
+      <div style="margin-top:32px">
+        <p class="detail-label" style="margin-bottom:12px">How it works</p>
+        <ol style="padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:0.9rem;color:var(--pp-text)">
+          {{#each plan.howItWorks}}
+          <li style="line-height:1.6">{{this}}</li>
+          {{/each}}
+        </ol>
+      </div>
+      {{/if}}
+    </div>
+
+    <div>
+      {{#if contractPrices}}
+      <h2 style="font-size:1.5rem;font-weight:800;color:var(--pp-navy);margin-bottom:16px">Price breakdown</h2>
+      <table class="spec-table">
+        <tbody>
+          {{#each contractPrices}}
+          <tr>
+            <th>{{label}}</th>
+            <td>
+              £{{effectiveMonthlyPrice}}/mo
+              {{#if discountPct}}<span style="color:var(--pp-blue);font-size:0.8rem;font-weight:600"> &mdash; save {{discountPct}}%</span>{{/if}}
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      {{/if}}
+
+      {{#if (eq plan.subType 'autotopup')}}
+      <h2 style="font-size:1.5rem;font-weight:800;color:var(--pp-navy);margin-bottom:16px">Usage rates</h2>
+      <table class="spec-table">
+        <tbody>
+          <tr><th>Calls</th><td>{{plan.rates.callsPerMin}} per minute</td></tr>
+          <tr><th>Texts</th><td>{{plan.rates.texts}} each</td></tr>
+          <tr><th>Data</th><td>{{plan.rates.dataPerMB}} per MB</td></tr>
+        </tbody>
+      </table>
+      {{/if}}
+
+      {{#if (eq plan.subType 'variable')}}
+      <h2 style="font-size:1.5rem;font-weight:800;color:var(--pp-navy);margin-bottom:16px">Usage rates</h2>
+      <table class="spec-table">
+        <tbody>
+          <tr><th>Calls</th><td>{{plan.rates.callsPerMin}} per minute</td></tr>
+          <tr><th>Texts</th><td>{{plan.rates.texts}} each</td></tr>
+          <tr><th>Data</th><td>{{plan.rates.dataPerMB}} per MB</td></tr>
+          <tr><th>Data (cap)</th><td>{{plan.rates.dataPerGB}} per GB</td></tr>
+        </tbody>
+      </table>
+      {{/if}}
+    </div>
+
+  </div>
+</section>
+
+{{!-- Related plans --}}
+{{#if related.length}}
+<section class="section" style="background:var(--pp-gray);padding:56px 0">
+  <div class="container">
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--pp-navy);margin-bottom:8px">Other plans</h2>
+    <p style="color:var(--pp-muted);margin-bottom:28px">Compare with similar options</p>
+    <div class="plans-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+      {{#each related}}
+      <div class="plan-card">
+        <div style="font-size:2.4rem;margin-bottom:12px">{{emoji}}</div>
+        <p class="plan-name">{{name}}</p>
+        <p class="plan-tagline">{{tagline}}</p>
+        {{#if baseMonthlyPrice}}
+        <div class="plan-price">£{{baseMonthlyPrice}}<span>/month</span></div>
+        <p style="font-size:0.75rem;color:var(--pp-muted);margin-top:4px">from, on 1-month rolling</p>
+        {{else}}
+        <div class="plan-price" style="font-size:1.3rem;line-height:1.3">Usage-based</div>
+        {{/if}}
+        <hr class="plan-divider">
+        <a href="/plans/{{id}}" class="btn btn-outline" style="display:block;text-align:center;margin-top:auto">View plan</a>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</section>
+{{/if}}
+
+<style>
+  .detail-hero { background: var(--pp-white); padding: 48px 0; border-bottom: 1px solid #E0E8F0; }
+  .detail-hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: flex-start;
+  }
+  .detail-visual {
+    background: var(--pp-light);
+    border-radius: 20px;
+    padding: 40px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    text-align: center;
+  }
+  .detail-badge {
+    position: absolute;
+    top: 16px; left: 16px;
+    background: var(--pp-navy);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .detail-badge.gold { background: var(--pp-gold); color: var(--pp-navy); }
+
+  .plan-detail-icon { font-size: 6rem; line-height: 1; margin-bottom: 20px; }
+
+  .detail-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pp-muted); margin-bottom: 8px; }
+
+  /* Contract length pills */
+  .contract-options { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .contract-pill {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    border: 2px solid #C8D8E8;
+    background: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--pp-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+  .contract-pill.active { border-color: var(--pp-navy); background: var(--pp-navy); color: #fff; }
+  .contract-pill:hover:not(.active) { border-color: var(--pp-blue); color: var(--pp-blue); }
+  .pill-discount-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--pp-gold);
+    color: var(--pp-navy);
+    padding: 2px 8px;
+    border-radius: 50px;
+    white-space: nowrap;
+  }
+  .contract-pill.active .pill-discount-badge { background: rgba(255,255,255,0.25); color: #fff; }
+
+  /* Rates grid */
+  .rates-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .rate-item {
+    background: #fff;
+    border: 1px solid #E0E8F0;
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+  }
+  .rate-value { display: block; font-size: 1.5rem; font-weight: 800; color: var(--pp-navy); }
+  .rate-label { font-size: 0.72rem; color: var(--pp-muted); font-weight: 600; margin-top: 2px; }
+
+  /* Top-up and threshold pills */
+  .topup-options, .threshold-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .topup-pill, .threshold-pill {
+    padding: 8px 18px;
+    border-radius: 50px;
+    border: 2px solid #C8D8E8;
+    background: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--pp-text);
+  }
+  .topup-pill.active, .threshold-pill.active { border-color: var(--pp-navy); background: var(--pp-navy); color: #fff; }
+  .topup-pill:hover:not(.active), .threshold-pill:hover:not(.active) { border-color: var(--pp-blue); color: var(--pp-blue); }
+
+  /* Right column */
+  .detail-info { }
+  .detail-title { font-size: 2.2rem; font-weight: 800; color: var(--pp-navy); margin-bottom: 10px; line-height: 1.15; }
+  .detail-tagline { color: var(--pp-muted); font-size: 1rem; margin-bottom: 28px; line-height: 1.6; }
+
+  .detail-price-block {
+    background: var(--pp-gray);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .detail-price { font-size: 2.4rem; font-weight: 800; color: var(--pp-navy); line-height: 1; }
+  .detail-price .price-unit { font-size: 1rem; font-weight: 500; color: var(--pp-muted); }
+
+  .saving-badge {
+    display: inline-block;
+    background: var(--pp-light);
+    color: var(--pp-blue);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 50px;
+    border: 1px solid #C8D8E8;
+  }
+
+  .detail-actions { display: flex; gap: 12px; margin-bottom: 16px; }
+
+  .detail-trust {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--pp-muted);
+    padding: 14px 0;
+    border-top: 1px solid #E0E8F0;
+    border-bottom: 1px solid #E0E8F0;
+    margin-bottom: 24px;
+  }
+
+  .highlights-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .highlights-list li {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; color: var(--pp-text);
+  }
+  .highlights-list li::before {
+    content: '✓';
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    background: var(--pp-navy); color: #fff;
+    border-radius: 50%; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* Body grid */
+  .detail-body-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: flex-start;
+  }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .spec-table th, .spec-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #E8EFF5; vertical-align: top; }
+  .spec-table th { color: var(--pp-muted); font-weight: 600; width: 38%; background: var(--pp-gray); }
+  .spec-table td { color: var(--pp-text); }
+  .spec-table tr:last-child th, .spec-table tr:last-child td { border-bottom: none; }
+
+  /* Responsive */
+  @media (max-width: 860px) {
+    .detail-hero-inner, .detail-body-grid { grid-template-columns: 1fr; gap: 32px; }
+    .detail-title { font-size: 1.8rem; }
+  }
+  @media (max-width: 500px) {
+    .detail-actions { flex-direction: column; }
+    .detail-trust { gap: 10px; }
+  }
+</style>
+
+<script>
+  // Contract length selector (fixed plans only)
+  const contractGroup = document.querySelector('.contract-options');
+  if (contractGroup) {
+    const priceEl    = document.getElementById('plan-price');
+    const discountEl = document.getElementById('discount-badge');
+    const summaryEl  = document.getElementById('contract-summary');
+
+    contractGroup.querySelectorAll('.contract-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        contractGroup.querySelectorAll('.contract-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        priceEl.textContent = pill.dataset.price;
+
+        const disc = parseInt(pill.dataset.discount, 10);
+        if (disc > 0) {
+          discountEl.querySelector('.saving-badge').textContent = `Save ${disc}% vs monthly`;
+          discountEl.style.display = '';
+        } else {
+          discountEl.style.display = 'none';
+        }
+
+        const label = pill.dataset.label;
+        summaryEl.textContent = disc > 0 ? `${label} contract` : `${label} \u2014 cancel anytime`;
+      });
+    });
+  }
+
+  // Top-up amount selector (auto top-up only)
+  const topupGroup    = document.querySelector('.topup-options');
+  const thresholdGroup = document.querySelector('.threshold-options');
+  if (topupGroup && thresholdGroup) {
+    const topupDisplay  = document.getElementById('topup-display');
+    const summaryAmount = document.getElementById('summary-amount');
+    const summaryThresh = document.getElementById('summary-threshold');
+
+    topupGroup.querySelectorAll('.topup-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        topupGroup.querySelectorAll('.topup-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        topupDisplay.textContent = pill.dataset.amount;
+        summaryAmount.textContent = pill.dataset.amount;
+      });
+    });
+
+    thresholdGroup.querySelectorAll('.threshold-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        thresholdGroup.querySelectorAll('.threshold-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        summaryThresh.textContent = pill.dataset.threshold;
+      });
+    });
+  }
+
+  // Select plan button (PAYG plans only — placeholder)
+  const selectBtn = document.getElementById('select-plan-btn');
+  if (selectBtn) {
+    selectBtn.addEventListener('click', () => {
+      selectBtn.textContent = '✓ Plan selected';
+      selectBtn.style.background = '#2E7D32';
+      selectBtn.style.borderColor = '#2E7D32';
+      setTimeout(() => {
+        selectBtn.textContent = 'Select this plan';
+        selectBtn.style.background = '';
+        selectBtn.style.borderColor = '';
+      }, 2000);
+    });
+  }
+</script>
+
+{{#if contractPrices}}
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&buyer-country={{paypalBuyerCountry}}"></script>
+<script>
+  const planFeedback = document.getElementById('plan-feedback');
+
+  const getSelectedContract = () => {
+    const pill = document.querySelector('.contract-pill.active');
+    return { id: pill?.dataset.contractId, price: pill?.dataset.price };
+  };
+
+  paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYPAL,
+    style: { shape: 'pill', height: 45 },
+    createVaultSetupToken: async () => {
+      const { id, price } = getSelectedContract();
+      const res = await fetch('/api/paypal/create-setup-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: '{{plan.id}}', contractLengthId: id, price }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.id) throw new Error(data.error || 'Failed to create setup token');
+      return data.id;
+    },
+    onApprove: async (data) => {
+      const res = await fetch('/api/paypal/save-payment-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        planFeedback.textContent = '✓ Payment method saved. Your plan is being activated.';
+        planFeedback.style.display = 'block';
+        planFeedback.style.background = '#E8F5E9';
+        planFeedback.style.color = '#2E7D32';
+      } else {
+        planFeedback.textContent = 'Something went wrong. Please try again.';
+        planFeedback.style.display = 'block';
+        planFeedback.style.background = '#FFEBEE';
+        planFeedback.style.color = '#C62828';
+      }
+    },
+    onError: () => {
+      planFeedback.textContent = 'Something went wrong. Please try again.';
+      planFeedback.style.display = 'block';
+      planFeedback.style.background = '#FFEBEE';
+      planFeedback.style.color = '#C62828';
+    },
+  }).render('#paypal-button-container');
+</script>
+{{/if}}
+
+{{#if (eq plan.subType 'variable')}}
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&buyer-country={{paypalBuyerCountry}}"></script>
+<script>
+  const planFeedback = document.getElementById('plan-feedback');
+
+  paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYPAL,
+    style: { shape: 'pill', height: 45 },
+    createVaultSetupToken: async () => {
+      const res = await fetch('/api/paypal/create-setup-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: '{{plan.id}}' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.id) throw new Error(data.error || 'Failed to create setup token');
+      return data.id;
+    },
+    onApprove: async (data) => {
+      const res = await fetch('/api/paypal/save-payment-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        planFeedback.textContent = '✓ Payment method saved. Your plan is being activated.';
+        planFeedback.style.display = 'block';
+        planFeedback.style.background = '#E8F5E9';
+        planFeedback.style.color = '#2E7D32';
+      } else {
+        planFeedback.textContent = 'Something went wrong. Please try again.';
+        planFeedback.style.display = 'block';
+        planFeedback.style.background = '#FFEBEE';
+        planFeedback.style.color = '#C62828';
+      }
+    },
+    onError: () => {
+      planFeedback.textContent = 'Something went wrong. Please try again.';
+      planFeedback.style.display = 'block';
+      planFeedback.style.background = '#FFEBEE';
+      planFeedback.style.color = '#C62828';
+    },
+  }).render('#paypal-button-container');
+</script>
+{{/if}}

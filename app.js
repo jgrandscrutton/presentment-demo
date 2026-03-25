@@ -42,6 +42,7 @@ app.use('/api', require('./routes/api'));
 app.use('/checkout', require('./routes/checkout'));
 app.use('/cart', require('./routes/cart'));
 app.use('/devices', require('./routes/devices'));
+app.use('/plans', require('./routes/plans'));
 app.use('/', require('./routes'));
 
 module.exports = app;

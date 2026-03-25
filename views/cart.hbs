@@ -67,7 +67,16 @@
           <span>Total</span>
           <span>£{{total}}</span>
         </div>
-        <div id="paypal-cart-messaging" style="margin-top:8px"></div>
+        <div
+            data-pp-message
+            data-pp-style-layout="text"
+            data-pp-style-logo-type="inline"
+            data-pp-style-text-color="black"
+            data-pp-placement="cart"
+            data-pp-amount="{{total}}"
+            data-pp-language=""
+            style="margin-top:8px">
+        </div>
         <a href="/checkout" class="btn btn-primary" style="display:block;text-align:center;margin-top:20px">Checkout</a>
         <div id="paypal-button-container" style="margin-top:12px"></div>
         <div id="paylater-button-container" style="margin-top:8px"></div>
@@ -220,11 +229,6 @@
     onApprove: onCartApprove,
     onError: onCartError,
   }).render('#paypal-button-container');
-
-  paypal.Messages({
-    amount: {{total}},
-    placement: 'cart',
-  }).render('#paypal-cart-messaging');
 
   const payLaterButton = paypal.Buttons({
     fundingSource: paypal.FUNDING.PAYLATER,

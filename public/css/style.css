@@ -256,7 +256,7 @@ img { display: block; max-width: 100%; }
 }
 
 /* ── Featured Devices ──────────────────────────────────────── */
-.section { padding: 72px 0; }
+.section { padding: 25px 0; }
 .section.bg-gray { background: var(--pp-gray); }
 
 .product-grid {
@@ -337,6 +337,8 @@ img { display: block; max-width: 100%; }
   display: flex;
   flex-direction: column;
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  text-decoration: none;
+  color: inherit;
 }
 .plan-card:hover {
   border-color: var(--pp-blue);

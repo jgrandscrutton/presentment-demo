@@ -9,6 +9,21 @@
   </div>
 </section>
 
+{{!-- PayLater Messaging --}}
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&components=messages"></script>
+<div
+    class="container">
+  <div
+    style="margin-top:10px"
+    data-pp-message
+    data-pp-style-layout="flex"
+    data-pp-style-ratio="20x1"
+    data-pp-style-color="white"
+    data-pp-amount="ENTER_VALUE_HERE"
+    data-pp-language="">
+  </div>
+</div>
+
 {{!-- Filter bar --}}
 <div style="background:#fff;border-bottom:1px solid #E0E8F0;position:sticky;top:68px;z-index:90">
   <div class="container" style="display:flex;align-items:center;gap:10px;padding-top:14px;padding-bottom:14px;flex-wrap:wrap">
@@ -63,6 +78,14 @@
             <div>
               <div class="product-price-sub" style="margin-bottom:2px">From</div>
               <div class="product-price">£{{upfrontPrice}}</div>
+              <div
+                  data-pp-message
+                  data-pp-style-layout="text"
+                  data-pp-style-logo-type="primary"
+                  data-pp-style-text-color="black"
+                  data-pp-amount="{{upfrontPrice}}"
+                  data-pp-language="">
+              </div>
             </div>
           </div>
         </div>
