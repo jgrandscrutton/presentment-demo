@@ -44,7 +44,7 @@ router.post('/create-setup-token', async (req, res) => {
     if (plan.subType === 'variable') {
       const typicalAmount = String(plan.typicalMonthlyAmount.toFixed(2));
       billingPlan = {
-        name: 'PhonePal',
+        name: `${plan.name} Plan`,
         product: {
           description: `${plan.name} Plan`,
           quantity: '1',
@@ -56,12 +56,39 @@ router.post('/create-setup-token', async (req, res) => {
             price: { value: typicalAmount, currency_code: 'GBP' },
           },
           frequency: { interval_unit: 'MONTH', interval_count: '1' },
-          total_cycles: '1',
+          total_cycles: '0',
           start_date: startDate,
         }],
         one_time_charges: {
           product_price: { value: typicalAmount, currency_code: 'GBP' },
           total_amount:  { value: typicalAmount, currency_code: 'GBP' },
+        },
+      };
+    } else if (plan.subType === 'autotopup') {
+      const amount     = parseFloat(req.body.topUpAmount) || plan.defaultTopUp;
+      const threshold  = parseFloat(req.body.threshold)  || plan.defaultThreshold;
+      const amountStr  = amount.toFixed(2);
+      const threshStr  = threshold.toFixed(2);
+      billingPlan = {
+        name: `${plan.name} Plan`,
+        product: {
+          description: `${plan.name} — £${amount} top-up`,
+          quantity: '1',
+        },
+        billing_cycles: [{
+          tenure_type: 'REGULAR',
+          pricing_scheme: {
+            pricing_model: 'AUTO_RELOAD',
+            price: { value: amountStr, currency_code: 'GBP' },
+            reload_threshold_amount: { value: threshStr, currency_code: 'GBP' }
+          },
+          frequency: { interval_unit: 'MONTH', interval_count: '1' },
+          total_cycles: '1',
+          start_date: startDate,
+        }],
+        one_time_charges: {
+          product_price: { value: amountStr, currency_code: 'GBP' },
+          total_amount:  { value: amountStr, currency_code: 'GBP' },
         },
       };
     } else {
@@ -72,7 +99,7 @@ router.post('/create-setup-token', async (req, res) => {
       const totalCycles = contract.months === 1 ? 0 : contract.months;
 
       billingPlan = {
-        name: 'PhonePal',
+        name: `${plan.name} Plan`,
         product: {
           description: `${plan.name} Plan — ${contract.label}`,
           quantity: '1',
@@ -98,7 +125,9 @@ router.post('/create-setup-token', async (req, res) => {
       payment_source: {
         paypal: {
           usage_type: 'MERCHANT',
-          usage_pattern: plan.subType === 'variable' ? 'RECURRING_POSTPAID' : 'SUBSCRIPTION_POSTPAID',
+          usage_pattern: plan.subType === 'variable'   ? 'RECURRING_PREPAID'
+                       : plan.subType === 'autotopup' ? 'UNSCHEDULED_PREPAID'
+                       : 'SUBSCRIPTION_POSTPAID',
           billing_plan: billingPlan,
           experience_context: {
             shipping_preference: 'NO_SHIPPING',
