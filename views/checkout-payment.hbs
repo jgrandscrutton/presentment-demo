@@ -18,78 +18,83 @@
 <section class="section" style="padding:48px 0">
   <div class="container">
     <div class="co-layout">
+    
+      <!-- Containers for Card Fields hosted by PayPal -->
+      <div id="card-form" class="card_container">
 
-      {{!-- Left: Billing & payment form --}}
-      <div class="co-main">
-        <div class="co-panel">
-          <h2 class="co-section-title">Billing address</h2>
-          <div class="form-check" style="margin-bottom:20px">
-            <input type="checkbox" id="same-as-shipping" checked onchange="toggleBilling(this)">
-            <label for="same-as-shipping">Same as shipping address</label>
+        {{!-- Left: Billing & payment form --}}
+        <div class="co-main">
+          <div class="co-panel">
+            <h2 class="co-section-title">Billing address</h2>
+            <div class="form-check" style="margin-bottom:20px">
+              <input type="checkbox" id="same-as-shipping" checked onchange="toggleBilling(this)">
+              <label for="same-as-shipping">Same as shipping address</label>
+            </div>
+            <div id="billing-fields" style="display:none">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">First name</label>
+                  <input class="form-input" type="text" name="billingFirstName" id="card-billing-first-name" placeholder="Jane">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last name</label>
+                  <input class="form-input" type="text" name="billingLastName" id="card-billing-last-name" placeholder="Smith">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Address line 1</label>
+                <input class="form-input" type="text" name="billingLine1" id="card-billing-address-line-1" placeholder="123 High Street">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">City</label>
+                  <input class="form-input" type="text" name="billingCity" id="card-billing-city" placeholder="London">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Postcode</label>
+                  <input class="form-input" type="text" name="billingPostcode" id="card-billing-address-postal-code" placeholder="SW1A 1AA">
+                </div>
+              </div>
+            </div>
           </div>
-          <div id="billing-fields" style="display:none">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">First name</label>
-                <input class="form-input" type="text" name="billingFirstName" placeholder="Jane">
+
+          <div class="co-panel" style="margin-top:20px">
+            <h2 class="co-section-title">Payment details</h2>
+            <form action="/checkout/payment" method="POST">
+              <div class="form-group" >
+                <label class="form-label" for="card-name">Name on card</label>
+                <input class="form-input" type="text" id="card-name" name="cardName" placeholder="Jane Smith" required>
               </div>
               <div class="form-group">
-                <label class="form-label">Last name</label>
-                <input class="form-input" type="text" name="billingLastName" placeholder="Smith">
+                <label class="form-label" for="card-number">Card number</label>
+                <div class="card-input-wrap">
+                  <input class="form-input" type="text" id="card-number" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                  <span class="card-icons">💳</span>
+                </div>
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Address line 1</label>
-              <input class="form-input" type="text" name="billingLine1" placeholder="123 High Street">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">City</label>
-                <input class="form-input" type="text" name="billingCity" placeholder="London">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="card-expiry">Expiry date</label>
+                  <input class="form-input" type="text" id="card-expiry" name="cardExpiry" placeholder="MM / YY" maxlength="7" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="card-cvc">CVC</label>
+                  <input class="form-input" type="text" id="card-cvc" name="cardCvc" placeholder="123" maxlength="4" required>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Postcode</label>
-                <input class="form-input" type="text" name="billingPostcode" placeholder="SW1A 1AA">
+
+              <div class="co-secure-note">
+                🔒 Your payment information is encrypted and secure.
               </div>
-            </div>
+
+              <div class="co-btn-row">
+                <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
+                <button type="submit" class="btn btn-primary">Place order · £{{total}}</button>
+              </div>
+            </form>
           </div>
         </div>
 
-        <div class="co-panel" style="margin-top:20px">
-          <h2 class="co-section-title">Payment details</h2>
-          <form action="/checkout/payment" method="POST">
-            <div class="form-group">
-              <label class="form-label" for="card-name">Name on card</label>
-              <input class="form-input" type="text" id="card-name" name="cardName" placeholder="Jane Smith" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="card-number">Card number</label>
-              <div class="card-input-wrap">
-                <input class="form-input" type="text" id="card-number" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-                <span class="card-icons">💳</span>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="card-expiry">Expiry date</label>
-                <input class="form-input" type="text" id="card-expiry" name="cardExpiry" placeholder="MM / YY" maxlength="7" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="card-cvc">CVC</label>
-                <input class="form-input" type="text" id="card-cvc" name="cardCvc" placeholder="123" maxlength="4" required>
-              </div>
-            </div>
-
-            <div class="co-secure-note">
-              🔒 Your payment information is encrypted and secure.
-            </div>
-
-            <div class="co-btn-row">
-              <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
-              <button type="submit" class="btn btn-primary">Place order · £{{total}}</button>
-            </div>
-          </form>
-        </div>
       </div>
 
       {{!-- Right: Order summary --}}
@@ -127,21 +132,5 @@
   </div>
 </section>
 
-<script>
-  function toggleBilling(checkbox) {
-    document.getElementById('billing-fields').style.display = checkbox.checked ? 'none' : 'block';
-  }
+<script src="/scripts/hosted-fields.js" defer> </script>
 
-  // Format card number with spaces
-  document.getElementById('card-number').addEventListener('input', function() {
-    let v = this.value.replace(/\D/g, '').substring(0, 16);
-    this.value = v.replace(/(.{4})/g, '$1 ').trim();
-  });
-
-  // Format expiry
-  document.getElementById('card-expiry').addEventListener('input', function() {
-    let v = this.value.replace(/\D/g, '').substring(0, 4);
-    if (v.length >= 3) v = v.slice(0, 2) + ' / ' + v.slice(2);
-    this.value = v;
-  });
-</script>
