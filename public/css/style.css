@@ -1,15 +1,15 @@
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
-  --pp-navy:   #003087;
-  --pp-blue:   #009CDE;
-  --pp-light:  #E8F4FB;
-  --pp-gold:   #FFB600;
+  --pp-navy:   #2E2DA8;
+  --pp-blue:   #6C6BDD;
+  --pp-light:  #EEEDF9;
+  --pp-gold:   #FF6B6B;
   --pp-white:  #FFFFFF;
-  --pp-gray:   #F5F7FA;
+  --pp-gray:   #F5F5FB;
   --pp-text:   #2C2E2F;
   --pp-muted:  #6C7378;
   --radius:    12px;
-  --shadow:    0 4px 20px rgba(0,48,135,0.10);
+  --shadow:    0 4px 20px rgba(46,45,168,0.12);
   --transition: 0.2s ease;
 }
 
@@ -43,7 +43,7 @@ img { display: block; max-width: 100%; }
   border: none;
   transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
 }
-.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,48,135,0.2); }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46,45,168,0.2); }
 
 .btn-primary   { background: var(--pp-navy); color: var(--pp-white); }
 .btn-secondary { background: var(--pp-gold); color: var(--pp-navy); }
@@ -67,7 +67,7 @@ img { display: block; max-width: 100%; }
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,48,135,0.06);
+  box-shadow: 0 2px 8px rgba(46,45,168,0.06);
 }
 
 .nav-inner {
@@ -133,7 +133,7 @@ img { display: block; max-width: 100%; }
 
 /* ── Hero ──────────────────────────────────────────────────── */
 .hero {
-  background: linear-gradient(135deg, var(--pp-navy) 0%, #0057B8 60%, var(--pp-blue) 100%);
+  background: linear-gradient(135deg, var(--pp-navy) 0%, #5A48C8 60%, var(--pp-blue) 100%);
   color: var(--pp-white);
   padding: 80px 0 60px;
   overflow: hidden;
@@ -159,9 +159,9 @@ img { display: block; max-width: 100%; }
 
 .hero-badge {
   display: inline-block;
-  background: rgba(255,182,0,0.2);
+  background: rgba(255,107,107,0.15);
   color: var(--pp-gold);
-  border: 1px solid rgba(255,182,0,0.4);
+  border: 1px solid rgba(255,107,107,0.4);
   padding: 4px 14px;
   border-radius: 50px;
   font-size: 0.8rem;
@@ -279,7 +279,7 @@ img { display: block; max-width: 100%; }
 }
 .product-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 36px rgba(0,48,135,0.15);
+  box-shadow: 0 12px 36px rgba(46,45,168,0.15);
 }
 
 .product-card-image {
@@ -342,7 +342,7 @@ img { display: block; max-width: 100%; }
 }
 .plan-card:hover {
   border-color: var(--pp-blue);
-  box-shadow: 0 8px 32px rgba(0,156,222,0.15);
+  box-shadow: 0 8px 32px rgba(108,107,221,0.15);
   transform: translateY(-4px);
 }
 .plan-card.featured {
@@ -410,7 +410,7 @@ img { display: block; max-width: 100%; }
 
 /* ── Footer ────────────────────────────────────────────────── */
 .footer {
-  background: #001A4D;
+  background: #1A1975;
   color: rgba(255,255,255,0.7);
   padding: 56px 0 28px;
 }

@@ -132,7 +132,7 @@ router.post('/create-setup-token', async (req, res) => {
           experience_context: {
             shipping_preference: 'NO_SHIPPING',
             payment_method_preference: 'IMMEDIATE_PAYMENT_REQUIRED',
-            brand_name: 'PhonePal',
+            brand_name: 'Merchant & Co.',
             locale: 'en-GB',
             return_url: `${baseUrl}/plans`,
             cancel_url: `${baseUrl}/plans`,
