@@ -36,7 +36,7 @@ if (cardField.isEligible()) {
 
     // Add click listener to submit button and call the submit function on the CardField component
     document
-        .getElementById("card-field-submit-button")
+        .getElementById("card-shipping-submit-button")
         .addEventListener("click", () => {
             cardField
                 .submit({
@@ -59,6 +59,7 @@ if (cardField.isEligible()) {
                 })
                 .then(() => {
                     // submit successful
+                    console.log(billingAddress)
                 });
         });
 }

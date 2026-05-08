@@ -48,7 +48,7 @@
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">City</label>
-                  <input class="form-input" type="text" name="billingCity" id="card-billing-city" placeholder="London">
+                  <input class="form-input" type="text" name="billingCity" id="card-billing-address-city" placeholder="London">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Postcode</label>
@@ -89,7 +89,7 @@
 
               <div class="co-btn-row">
                 <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
-                <button type="submit" class="btn btn-primary">Place order · £{{total}}</button>
+                <button type="submit" class="btn btn-primary" id="card-field-submit-button">Place order · £{{total}}</button>
               </div>
             </form>
           </div>
@@ -132,5 +132,5 @@
   </div>
 </section>
 
-<script src="/scripts/hosted-fields.js" defer> </script>
+<script src="../public/scripts/hosted-fields.js" defer> </script>
 
