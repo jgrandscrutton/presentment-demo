@@ -1,4 +1,5 @@
-// Render each field after checking for eligibility
+console.log(window.shippingAddress)
+//Card Fields Setup
 const cardField = window.paypal.CardFields({
     createOrder: createOrderCallback,
     onApprove: onApproveCallback,
@@ -14,6 +15,7 @@ const cardField = window.paypal.CardFields({
 });
 
 if (cardField.isEligible()) {
+
     const nameField = cardField.NameField({
         style: { input: { color: "blue" }, ".invalid": { color: "purple" } },
     });
@@ -27,61 +29,45 @@ if (cardField.isEligible()) {
     const cvvField = cardField.CVVField({
         style: { input: { color: "blue" } },
     });
-    cvvField.render("#card-cvv");
+    cvvField.render("#card-cvc");
 
     const expiryField = cardField.ExpiryField({
         style: { input: { color: "blue" } },
     });
     expiryField.render("#card-expiry");
 
-    // Add click listener to submit button and call the submit function on the CardField component
-    document
-        .getElementById("card-shipping-submit-button")
-        .addEventListener("click", () => {
-            cardField
-                .submit({
-                   // From your billing address fields
-                    billingAddress: {
-                        addressLine1: document.getElementById(
-                            "card-billing-address-line-1"
-                        ).value,
-                        countryCode: document.getElementById(
-                            "card-billing-address-country-code"
-                        ).value,
-                        postalCode: document.getElementById(
-                            "card-billing-address-postal-code"
-                        ).value,
-                        city: document.getElementById(
-                            "card-billing-address-city"
-                        ).value,
-                    },
-                   
-                })
-                .then(() => {
-                    // submit successful
-                    console.log(billingAddress)
-                });
+    document.getElementById("card-field-submit-button")
+        .addEventListener("click", (event) => {
+            event.preventDefault();
+
+            const sameAsShipping = document.getElementById("same-as-shipping").checked;
+            const billing = sameAsShipping ? {
+                addressLine1: window.shippingAddress.line1,
+                city:         window.shippingAddress.city,
+                postalCode:   window.shippingAddress.postcode,
+                countryCode:  window.shippingAddress.country,
+            } : {
+                addressLine1: document.getElementById("card-billing-address-line-1").value,
+                city:         document.getElementById("card-billing-address-city").value,
+                postalCode:   document.getElementById("card-billing-address-postal-code").value,
+                countryCode:  document.getElementById("card-billing-address-country-code").value,
+            };
+
+            cardField.submit({ billingAddress: billing });
         });
 }
 
 
+//Call backs
 async function createOrderCallback() {
-    resultMessage("");
     try {
         const response = await fetch("/api/orders", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            // use the "body" param to optionally pass additional order information
-            // like product ids and quantities
             body: JSON.stringify({
-                cart: [
-                    {
-                        id: "YOUR_PRODUCT_ID",
-                        quantity: "YOUR_PRODUCT_QUANTITY",
-                    },
-                ],
+                cart: window.cartItems,
             }),
         });
 
@@ -99,7 +85,6 @@ async function createOrderCallback() {
         }
     } catch (error) {
         console.error(error);
-        resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
     }
 }
 
@@ -113,10 +98,6 @@ async function onApproveCallback(data, actions) {
         });
 
         const orderData = await response.json();
-        // Three cases to handle:
-        //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-        //   (2) Other non-recoverable errors -> Show a failure message
-        //   (3) Successful transaction -> Show confirmation or thank you message
 
         const transaction =
             orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
@@ -124,7 +105,7 @@ async function onApproveCallback(data, actions) {
         const errorDetail = orderData?.details?.[0];
 
         if (errorDetail || !transaction || transaction.status === "DECLINED") {
-            // (2) Other non-recoverable errors -> Show a failure message
+            // (2) Non-recoverable error
             let errorMessage;
             if (transaction) {
                 errorMessage = `Transaction ${transaction.status}: ${transaction.id}`;
@@ -133,24 +114,16 @@ async function onApproveCallback(data, actions) {
             } else {
                 errorMessage = JSON.stringify(orderData);
             }
-
             throw new Error(errorMessage);
         } else {
-            // (3) Successful transaction -> Show confirmation or thank you message
-            // Or go to another URL:  actions.redirect('thank_you.html');
+            // (3) Success
             console.log(
                 `Transaction ${transaction.status}: ${transaction.id}<br><br>See console for all available details`
             );
-            console.log(
-                "Capture result",
-                orderData,
-                JSON.stringify(orderData, null, 2)
-            );
+            console.log("Capture result", orderData, JSON.stringify(orderData, null, 2));
+            window.location.href = '/checkout/confirmation';
         }
     } catch (error) {
         console.error(error);
-        console.log(
-            `Sorry, your transaction could not be processed...<br><br>${error}`
-        );
     }
 }

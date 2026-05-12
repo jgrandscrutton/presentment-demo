@@ -13,6 +13,7 @@ app.engine('hbs', engine({
     incremented: (n) => n + 1,
     decremented: (n) => Math.max(0, n - 1),
     itemTotal: (price, qty) => price * qty,
+    json: (context) => JSON.stringify(context), 
   },
 }));
 app.set('view engine', 'hbs');

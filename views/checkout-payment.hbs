@@ -61,25 +61,27 @@
           <div class="co-panel" style="margin-top:20px">
             <h2 class="co-section-title">Payment details</h2>
             <form action="/checkout/payment" method="POST">
-              <div class="form-group" >
-                <label class="form-label" for="card-name">Name on card</label>
-                <input class="form-input" type="text" id="card-name" name="cardName" placeholder="Jane Smith" required>
-              </div>
               <div class="form-group">
-                <label class="form-label" for="card-number">Card number</label>
+                <label class="form-label">Name on card</label>
+                <div id="card-name" class="form-input" ></div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Card number</label>
                 <div class="card-input-wrap">
-                  <input class="form-input" type="text" id="card-number" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-                  <span class="card-icons">💳</span>
+                  <div id="card-number" class="form-input" ></div>
+                  <span class="card-icons"></span>
                 </div>
               </div>
+
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label" for="card-expiry">Expiry date</label>
-                  <input class="form-input" type="text" id="card-expiry" name="cardExpiry" placeholder="MM / YY" maxlength="7" required>
+                  <label class="form-label">Expiry date</label>
+                  <div id="card-expiry" class="form-input"></div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="card-cvc">CVC</label>
-                  <input class="form-input" type="text" id="card-cvc" name="cardCvc" placeholder="123" maxlength="4" required>
+                  <label class="form-label">CVC</label>
+                  <div id="card-cvc" class="form-input" ></div>
                 </div>
               </div>
 
@@ -118,6 +120,7 @@
         </div>
         <div class="cart-summary-total">
           <span>Total</span> <span>£{{total}}</span>
+          <p id="result-message"></p> 
         </div>
 
         <div class="co-ship-summary">
@@ -132,5 +135,10 @@
   </div>
 </section>
 
-<script src="../public/scripts/hosted-fields.js" defer> </script>
+<script>
+  window.shippingAddress = {{{json shipping}}};
+  window.cartItems = {{{json cart}}};
+</script>
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&components=card-fields&buyer-country={{paypalBuyerCountry}}"></script>
+<script src="/scripts/hosted-fields.js" defer></script>
 
