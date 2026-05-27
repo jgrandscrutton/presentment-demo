@@ -103,11 +103,6 @@
         {{/if}}
       </div>
 
-      {{#if (eq plan.subType 'autotopup')}}
-      <div class="detail-actions">
-        <button id="select-plan-btn" class="btn btn-primary" style="flex:1">Select this plan</button>
-      </div>
-      {{/if}}
 
       <div id="paypal-button-container" style="margin-top:12px"></div>
       <div id="plan-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
@@ -505,6 +500,64 @@
       const result = await res.json();
       if (result.success) {
         planFeedback.textContent = '✓ Payment method saved. Your plan is being activated.';
+        planFeedback.style.display = 'block';
+        planFeedback.style.background = '#E8F5E9';
+        planFeedback.style.color = '#2E7D32';
+      } else {
+        planFeedback.textContent = 'Something went wrong. Please try again.';
+        planFeedback.style.display = 'block';
+        planFeedback.style.background = '#FFEBEE';
+        planFeedback.style.color = '#C62828';
+      }
+    },
+    onError: () => {
+      planFeedback.textContent = 'Something went wrong. Please try again.';
+      planFeedback.style.display = 'block';
+      planFeedback.style.background = '#FFEBEE';
+      planFeedback.style.color = '#C62828';
+    },
+  }).render('#paypal-button-container');
+</script>
+{{/if}}
+
+{{#if (eq plan.subType 'autotopup')}}
+<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&buyer-country={{paypalBuyerCountry}}"></script>
+<script>
+  const planFeedback = document.getElementById('plan-feedback');
+
+  const getSelectedTopUp = () => {
+    const pill = document.querySelector('.topup-pill.active');
+    return pill ? parseFloat(pill.dataset.amount) : {{plan.defaultTopUp}};
+  };
+
+  const getSelectedThreshold = () => {
+    const pill = document.querySelector('.threshold-pill.active');
+    return pill ? parseFloat(pill.dataset.threshold) : {{plan.defaultThreshold}};
+  };
+
+  paypal.Buttons({
+    fundingSource: paypal.FUNDING.PAYPAL,
+    style: { shape: 'pill', height: 45 },
+    createVaultSetupToken: async () => {
+      const topUpAmount = getSelectedTopUp();
+      const res = await fetch('/api/paypal/create-setup-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: '{{plan.id}}', topUpAmount, threshold: getSelectedThreshold() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.id) throw new Error(data.error || 'Failed to create setup token');
+      return data.id;
+    },
+    onApprove: async (data) => {
+      const res = await fetch('/api/paypal/save-payment-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        planFeedback.textContent = '✓ Payment method saved. Auto top-up is now active.';
         planFeedback.style.display = 'block';
         planFeedback.style.background = '#E8F5E9';
         planFeedback.style.color = '#2E7D32';
