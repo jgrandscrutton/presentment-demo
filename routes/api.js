@@ -25,6 +25,7 @@ router.get('/', (req, res) => {
   res.json({ message: 'API is running' });
 });
 
+router.use('/paypal', require('./paypal'));
 
 //PayPal Client Setup
 const client = new Client({
@@ -44,7 +45,7 @@ const client = new Client({
 const ordersController = new OrdersController(client);
 const paymentsController = new PaymentsController(client);
 
-
+/** For HOSTED FIELDS */
 /**. Create an order to start the transaction.  */
 const createOrder = async (cart) => {
     const total = cart.reduce((sum, item) => sum + (item.upfrontPrice * item.quantity), 0);
@@ -90,7 +91,6 @@ router.post("/orders", async (req, res) => {
         res.status(500).json({ error: "Failed to create order." });
     }
 });
-
 
 /**Capture payment for the created order to complete the transaction.  */
 const captureOrder = async (orderID) => {
@@ -142,5 +142,7 @@ router.post("/orders/:orderID/capture", async (req, res) => {
         res.status(500).json({ error: "Failed to capture order." });
     }
 });
+
+
 
 module.exports = router;

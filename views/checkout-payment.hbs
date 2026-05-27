@@ -120,8 +120,21 @@
         </div>
         <div class="cart-summary-total">
           <span>Total</span> <span>£{{total}}</span>
-          <p id="result-message"></p> 
+          <p id="result-message"></p>
         </div>
+        <div
+            data-pp-message
+            data-pp-style-layout="text"
+            data-pp-style-logo-type="inline"
+            data-pp-style-text-color="black"
+            data-pp-placement="cart"
+            data-pp-amount="{{total}}"
+            data-pp-language=""
+            style="margin-top:8px">
+        </div>
+        <div id="paypal-button-container" style="margin-top:12px"></div>
+        <div id="paylater-button-container" style="margin-top:8px"></div>
+        <div id="paypal-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
 
         <div class="co-ship-summary">
           <p style="font-size:0.78rem;font-weight:600;color:var(--pp-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Shipping to</p>
@@ -139,6 +152,12 @@
   window.shippingAddress = {{{json shipping}}};
   window.cartItems = {{{json cart}}};
 </script>
-<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&components=card-fields&buyer-country={{paypalBuyerCountry}}"></script>
-<script src="/scripts/hosted-fields.js" defer></script>
+<script src="/scripts/paypal-checkout.js"></script>
+<script src="/scripts/hosted-fields.js"></script>
+<script 
+  src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&enable-funding=paylater,card&buyer-country={{paypalBuyerCountry}}&components=buttons,messages,card-fields"
+  onload="initPayPal(); initHostedFields();">
+</script>
+
+
 
