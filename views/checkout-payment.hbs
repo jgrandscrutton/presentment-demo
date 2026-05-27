@@ -18,78 +18,85 @@
 <section class="section" style="padding:48px 0">
   <div class="container">
     <div class="co-layout">
+    
+      <!-- Containers for Card Fields hosted by PayPal -->
+      <div id="card-form" class="card_container">
 
-      {{!-- Left: Billing & payment form --}}
-      <div class="co-main">
-        <div class="co-panel">
-          <h2 class="co-section-title">Billing address</h2>
-          <div class="form-check" style="margin-bottom:20px">
-            <input type="checkbox" id="same-as-shipping" checked onchange="toggleBilling(this)">
-            <label for="same-as-shipping">Same as shipping address</label>
+        {{!-- Left: Billing & payment form --}}
+        <div class="co-main">
+          <div class="co-panel">
+            <h2 class="co-section-title">Billing address</h2>
+            <div class="form-check" style="margin-bottom:20px">
+              <input type="checkbox" id="same-as-shipping" checked onchange="toggleBilling(this)">
+              <label for="same-as-shipping">Same as shipping address</label>
+            </div>
+            <div id="billing-fields" style="display:none">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">First name</label>
+                  <input class="form-input" type="text" name="billingFirstName" id="card-billing-first-name" placeholder="Jane">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last name</label>
+                  <input class="form-input" type="text" name="billingLastName" id="card-billing-last-name" placeholder="Smith">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Address line 1</label>
+                <input class="form-input" type="text" name="billingLine1" id="card-billing-address-line-1" placeholder="123 High Street">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">City</label>
+                  <input class="form-input" type="text" name="billingCity" id="card-billing-address-city" placeholder="London">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Postcode</label>
+                  <input class="form-input" type="text" name="billingPostcode" id="card-billing-address-postal-code" placeholder="SW1A 1AA">
+                </div>
+              </div>
+            </div>
           </div>
-          <div id="billing-fields" style="display:none">
-            <div class="form-row">
+
+          <div class="co-panel" style="margin-top:20px">
+            <h2 class="co-section-title">Payment details</h2>
+            <form action="/checkout/payment" method="POST">
               <div class="form-group">
-                <label class="form-label">First name</label>
-                <input class="form-input" type="text" name="billingFirstName" placeholder="Jane">
+                <label class="form-label">Name on card</label>
+                <div id="card-name" class="form-input" ></div>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Last name</label>
-                <input class="form-input" type="text" name="billingLastName" placeholder="Smith">
+                <label class="form-label">Card number</label>
+                <div class="card-input-wrap">
+                  <div id="card-number" class="form-input" ></div>
+                  <span class="card-icons"></span>
+                </div>
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Address line 1</label>
-              <input class="form-input" type="text" name="billingLine1" placeholder="123 High Street">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">City</label>
-                <input class="form-input" type="text" name="billingCity" placeholder="London">
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Expiry date</label>
+                  <div id="card-expiry" class="form-input"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">CVC</label>
+                  <div id="card-cvc" class="form-input" ></div>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Postcode</label>
-                <input class="form-input" type="text" name="billingPostcode" placeholder="SW1A 1AA">
+
+              <div class="co-secure-note">
+                🔒 Your payment information is encrypted and secure.
               </div>
-            </div>
+
+              <div class="co-btn-row">
+                <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
+                <button type="submit" class="btn btn-primary" id="card-field-submit-button">Place order · £{{total}}</button>
+              </div>
+            </form>
           </div>
         </div>
 
-        <div class="co-panel" style="margin-top:20px">
-          <h2 class="co-section-title">Payment details</h2>
-          <form action="/checkout/payment" method="POST">
-            <div class="form-group">
-              <label class="form-label" for="card-name">Name on card</label>
-              <input class="form-input" type="text" id="card-name" name="cardName" placeholder="Jane Smith" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="card-number">Card number</label>
-              <div class="card-input-wrap">
-                <input class="form-input" type="text" id="card-number" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-                <span class="card-icons">💳</span>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="card-expiry">Expiry date</label>
-                <input class="form-input" type="text" id="card-expiry" name="cardExpiry" placeholder="MM / YY" maxlength="7" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="card-cvc">CVC</label>
-                <input class="form-input" type="text" id="card-cvc" name="cardCvc" placeholder="123" maxlength="4" required>
-              </div>
-            </div>
-
-            <div class="co-secure-note">
-              🔒 Your payment information is encrypted and secure.
-            </div>
-
-            <div class="co-btn-row">
-              <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
-              <button type="submit" class="btn btn-primary">Place order · £{{total}}</button>
-            </div>
-          </form>
-        </div>
       </div>
 
       {{!-- Right: Order summary --}}
@@ -113,7 +120,21 @@
         </div>
         <div class="cart-summary-total">
           <span>Total</span> <span>£{{total}}</span>
+          <p id="result-message"></p>
         </div>
+        <div
+            data-pp-message
+            data-pp-style-layout="text"
+            data-pp-style-logo-type="inline"
+            data-pp-style-text-color="black"
+            data-pp-placement="cart"
+            data-pp-amount="{{total}}"
+            data-pp-language=""
+            style="margin-top:8px">
+        </div>
+        <div id="paypal-button-container" style="margin-top:12px"></div>
+        <div id="paylater-button-container" style="margin-top:8px"></div>
+        <div id="paypal-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
 
         <div class="co-ship-summary">
           <p style="font-size:0.78rem;font-weight:600;color:var(--pp-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Shipping to</p>
@@ -128,20 +149,15 @@
 </section>
 
 <script>
-  function toggleBilling(checkbox) {
-    document.getElementById('billing-fields').style.display = checkbox.checked ? 'none' : 'block';
-  }
-
-  // Format card number with spaces
-  document.getElementById('card-number').addEventListener('input', function() {
-    let v = this.value.replace(/\D/g, '').substring(0, 16);
-    this.value = v.replace(/(.{4})/g, '$1 ').trim();
-  });
-
-  // Format expiry
-  document.getElementById('card-expiry').addEventListener('input', function() {
-    let v = this.value.replace(/\D/g, '').substring(0, 4);
-    if (v.length >= 3) v = v.slice(0, 2) + ' / ' + v.slice(2);
-    this.value = v;
-  });
+  window.shippingAddress = {{{json shipping}}};
+  window.cartItems = {{{json cart}}};
 </script>
+<script src="/scripts/paypal-checkout.js"></script>
+<script src="/scripts/hosted-fields.js"></script>
+<script 
+  src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&enable-funding=paylater,card&buyer-country={{paypalBuyerCountry}}&components=buttons,messages,card-fields"
+  onload="initPayPal(); initHostedFields();">
+</script>
+
+
+
