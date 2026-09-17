@@ -19,9 +19,6 @@
   <div class="container">
     <div class="co-layout">
     
-      <!-- Containers for Card Fields hosted by PayPal -->
-      <div id="card-form" class="card_container">
-
         {{!-- Left: Billing & payment form --}}
         <div class="co-main">
           <div class="co-panel">
@@ -58,31 +55,15 @@
             </div>
           </div>
 
+          <!-- Containers for Card Fields hosted by PayPal -->
           <div class="co-panel" style="margin-top:20px">
             <h2 class="co-section-title">Payment details</h2>
             <form action="/checkout/payment" method="POST">
-              <div class="form-group">
-                <label class="form-label">Name on card</label>
-                <div id="card-name" class="form-input" ></div>
-              </div>
 
-              <div class="form-group">
-                <label class="form-label">Card number</label>
-                <div class="card-input-wrap">
-                  <div id="card-number" class="form-input" ></div>
-                  <span class="card-icons"></span>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Expiry date</label>
-                  <div id="card-expiry" class="form-input"></div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">CVC</label>
-                  <div id="card-cvc" class="form-input" ></div>
-                </div>
+              <div class="card-fields-container">
+                <div class="card-field" id="card-number"></div>
+                <div class="card-field" id="card-expiry"></div>
+                <div class="card-field" id="card-cvv"></div>
               </div>
 
               <div class="co-secure-note">
@@ -91,7 +72,8 @@
 
               <div class="co-btn-row">
                 <a href="/checkout/shipping" class="btn btn-outline">← Back</a>
-                <button type="submit" class="btn btn-primary" id="card-field-submit-button">Place order · £{{total}}</button>
+                <button type="button" class="btn btn-primary" id="pay-button">Place order · £{{total}}</button>
+                
               </div>
             </form>
           </div>
@@ -122,16 +104,14 @@
           <span>Total</span> <span>£{{total}}</span>
           <p id="result-message"></p>
         </div>
-        <div
-            data-pp-message
-            data-pp-style-layout="text"
-            data-pp-style-logo-type="inline"
-            data-pp-style-text-color="black"
-            data-pp-placement="cart"
-            data-pp-amount="{{total}}"
-            data-pp-language=""
-            style="margin-top:8px">
-        </div>
+
+        <paypal-message
+              auto-bootstrap
+              amount="{{total}}"
+              currency-code="{{paypalCurrencyCode}}"
+              logo-type="MONOGRAM"
+        ></paypal-message>
+
         <div id="paypal-button-container" style="margin-top:12px"></div>
         <div id="paylater-button-container" style="margin-top:8px"></div>
         <div id="paypal-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
@@ -152,12 +132,23 @@
   window.shippingAddress = {{{json shipping}}};
   window.cartItems = {{{json cart}}};
 </script>
-<script src="/scripts/paypal-checkout.js"></script>
-<script src="/scripts/hosted-fields.js"></script>
-<script 
-  src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&enable-funding=paylater,card&buyer-country={{paypalBuyerCountry}}&components=buttons,messages,card-fields"
-  onload="initPayPal(); initHostedFields();">
+<script>
+  window.PAYPAL_CONFIG = {
+    clientId: "{{paypalClientId}}",
+    buyerCountry: "{{paypalBuyerCountry}}",
+    orderType: "cart",
+    currencyCode: "{{paypalCurrencyCode}}",
+    feedbackElementId: "paypal-feedback",
+    locale: "{{locale}}",
+     onSuccessRedirect: "/checkout/confirmation",
+    amount: Number("{{total}}").toFixed(2),
+    getOrderPayload: () => ({}),
+  };
 </script>
-
+<script src="/scripts/paypal-checkout.js"></script>
+<script
+  src="https://www.sandbox.paypal.com/web-sdk/v6/core"
+  onload="onPayPalWebSdkLoaded()">
+</script>
 
 

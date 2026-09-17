@@ -67,19 +67,19 @@
           <span>Total</span>
           <span>£{{total}}</span>
         </div>
-        <div
-            data-pp-message
-            data-pp-style-layout="text"
-            data-pp-style-logo-type="inline"
-            data-pp-style-text-color="black"
-            data-pp-placement="cart"
-            data-pp-amount="{{total}}"
-            data-pp-language=""
-            style="margin-top:8px">
+        <br>
+        <paypal-message
+              auto-bootstrap
+              amount="{{total}}"
+              currency-code="{{paypalCurrencyCode}}"
+              logo-type="MONOGRAM"
+        ></paypal-message>
+     
+        <div class="detail-paypal-actions">
+          <a href="/checkout" class="btn btn-primary" style="display:block;text-align:center;margin-top:20px">Checkout</a>
+          <paypal-button id="paypal-button" type="pay"></paypal-button>
+          <paypal-pay-later-button id="paylater-button" type="pay"></paypal-pay-later-button>
         </div>
-        <a href="/checkout" class="btn btn-primary" style="display:block;text-align:center;margin-top:20px">Checkout</a>
-        <div id="paypal-button-container" style="margin-top:12px"></div>
-        <div id="paylater-button-container" style="margin-top:8px"></div>
         <div id="paypal-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
         <a href="/devices" class="btn btn-outline" style="display:block;text-align:center;margin-top:10px">Continue shopping</a>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:0.78rem;color:var(--pp-muted)">
@@ -184,9 +184,25 @@
 </style>
 
 {{#unless isEmpty}}
+<script>
+  window.PAYPAL_CONFIG = {
+    clientId: "{{paypalClientId}}",
+    buyerCountry: "{{paypalBuyerCountry}}",
+    orderType: "device",
+    currencyCode: "{{paypalCurrencyCode}}",
+    feedbackElementId: "basket-feedback",
+    locale: "{{locale}}",
+    amount: Number("{{total}}").toFixed(2),
+    getOrderPayload: () => ({
+      deviceId: '{{device.id}}',
+      storageIndex: selectedStorageIndex,
+      colour: selectedColour,
+    }),
+  };
+</script>
 <script src="/scripts/paypal-checkout.js"></script>
-<script 
-  src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&disable-funding=card&enable-funding=paylater&buyer-country={{paypalBuyerCountry}}&components=buttons,messages"
-  onload="initPayPal()">
+<script
+  src="https://www.sandbox.paypal.com/web-sdk/v6/core"
+  onload="onPayPalWebSdkLoaded()">
 </script>
 {{/unless}}

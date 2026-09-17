@@ -10,7 +10,10 @@
 </section>
 
 {{!-- PayLater Messaging --}}
-<script src="https://www.paypal.com/sdk/js?client-id={{paypalClientId}}&currency=GBP&components=messages"></script>
+<script
+      src="https://www.sandbox.paypal.com/web-sdk/v6/core"
+      onload="onPayPalWebSdkLoaded()">
+</script>
 <div
     class="container">
   <div

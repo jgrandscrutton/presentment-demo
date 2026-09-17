@@ -36,6 +36,8 @@ app.use((req, res, next) => {
   res.locals.cartCount = cartCount;
   res.locals.paypalClientId = process.env.PAYPAL_CLIENT_ID || '';
   res.locals.paypalBuyerCountry = process.env.PAYPAL_BUYER_COUNTRY || 'GB';
+  res.locals.paypalCurrencyCode = process.env.PAYPAL_CURRENCY_CODE;
+  res.locals.locale = "en-GB";
   next();
 });
 

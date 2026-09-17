@@ -261,15 +261,21 @@ router.post('/create-order', async (req, res) => {
 // Body: { orderID, type: 'device' | 'cart' }
 router.post('/capture-order', async (req, res) => {
   try {
-    const { orderID, type } = req.body;
+    const { orderId, type } = req.body;
+    console.log('[capture-order] received orderID:', orderId, 'type:', type);
+
     const accessToken = await getAccessToken();
-    const captureRes = await fetch(`${BASE_URL}/v2/checkout/orders/${orderID}/capture`, {
+    //console.log('[capture-order] got access token:', accessToken ? accessToken.slice(0, 12) + '…' : accessToken);
+
+    const captureRes = await fetch(`${BASE_URL}/v2/checkout/orders/${orderId}/capture`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
       },
     });
+
+    console.log('[capture-order] PayPal capture HTTP status:', captureRes.status);
     const data = await captureRes.json();
 
     if (data.status === 'COMPLETED') {
@@ -279,12 +285,13 @@ router.post('/capture-order', async (req, res) => {
         req.session.lastOrder = { cart, total, paypalOrderId: data.id };
         req.session.cart = [];
       }
-      res.json({ success: true, orderID: data.id });
+      res.json({ success: true, orderId: data.id });
     } else {
+      console.error('[capture-order] payment not completed, full response:', data);
       res.status(400).json({ error: 'Payment not completed', status: data.status });
     }
   } catch (err) {
-    console.error('PayPal capture-order error:', err);
+    console.error('[capture-order] threw an exception:', err);
     res.status(500).json({ error: 'Failed to capture payment' });
   }
 });
