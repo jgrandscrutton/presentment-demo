@@ -1,0 +1,221 @@
+<!-- views/webhook-activity.hbs -->
+
+<style>
+    .activity-section {
+        max-width: 1200px;
+        margin: 4rem auto;
+        padding: 0 2rem;
+    }
+
+    .activity-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .activity-header h1 {
+        color: #003087;
+        margin-bottom: 1rem;
+    }
+
+    .refresh-btn {
+        background: #0070ba;
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        margin-bottom: 2rem;
+    }
+
+    .refresh-btn:hover {
+        background: #005ea6;
+    }
+
+    .event-count {
+        background: #e6f2ff;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: #003087;
+    }
+
+    .events-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .event-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .event-type {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #003087;
+    }
+
+    .event-time {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .event-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-left: 1rem;
+    }
+
+    .badge-cancelled {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .badge-created {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-updated {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
+    .event-data {
+        background: #f5f5f5;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 0.9rem;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .no-events {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .event-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<section class="activity-section">
+    <div class="activity-header">
+        <h1>Webhook Activity Monitor</h1>
+        <p>Real-time webhook events from PayPal/Braintree</p>
+    </div>
+
+    <div style="text-align: center;">
+        <button class="refresh-btn" onclick="loadWebhookEvents()">🔄 Refresh Events</button>
+    </div>
+
+    <div class="event-count" id="event-count">
+        Loading events...
+    </div>
+
+    <div class="events-container" id="events-container">
+        <div class="loading">Loading webhook events...</div>
+    </div>
+</section>
+
+<script>
+function loadWebhookEvents() {
+    document.getElementById('events-container').innerHTML = '<div class="loading">Loading...</div>';
+    
+    fetch('/api/webhooks/activity')
+        .then(response => response.json())
+        .then(data => {
+            displayEvents(data.events, data.count);
+        })
+        .catch(err => {
+            console.error('Error loading events:', err);
+            document.getElementById('events-container').innerHTML = 
+                '<div class="no-events">Error loading events. Check console.</div>';
+        });
+}
+
+function displayEvents(events, count) {
+    const countDiv = document.getElementById('event-count');
+    countDiv.textContent = `${count} webhook event${count !== 1 ? 's' : ''} received`;
+    
+    const container = document.getElementById('events-container');
+    
+    if (events.length === 0) {
+        container.innerHTML = '<div class="no-events">No webhook events received yet. Cancel a billing agreement in PayPal to see events appear here.</div>';
+        return;
+    }
+    
+    container.innerHTML = events.map(event => {
+        const badge = getEventBadge(event.type);
+        
+        return `
+            <div class="event-card">
+                <div class="event-header">
+                    <div>
+                        <span class="event-type">${event.type}</span>
+                        <span class="event-badge ${badge.class}">${badge.text}</span>
+                    </div>
+                    <div class="event-time">${event.receivedAt}</div>
+                </div>
+                <div class="event-data">${JSON.stringify(event.data, null, 2)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getEventBadge(type) {
+    const lowerType = type.toLowerCase();
+    
+    if (lowerType.includes('cancel')) {
+        return { class: 'badge-cancelled', text: 'CANCELLED' };
+    }
+    if (lowerType.includes('create')) {
+        return { class: 'badge-created', text: 'CREATED' };
+    }
+    if (lowerType.includes('update')) {
+        return { class: 'badge-updated', text: 'UPDATED' };
+    }
+    
+    return { class: 'badge-updated', text: 'EVENT' };
+}
+
+// Load events on page load
+loadWebhookEvents();
+
+// Auto-refresh every 10 seconds
+setInterval(loadWebhookEvents, 10000);
+</script>

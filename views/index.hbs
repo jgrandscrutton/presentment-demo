@@ -1,0 +1,201 @@
+
+<!-- ============================================== -->
+<!-- views/index.hbs -->
+<!-- ============================================== -->
+
+<style>
+    .hero {
+        background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
+        color: white;
+        padding: 6rem 2rem;
+        text-align: center;
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+
+    .hero p {
+        font-size: 1.3rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .products-section {
+        max-width: 1200px;
+        margin: 4rem auto;
+        padding: 0 2rem;
+    }
+
+    .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 3rem;
+        color: #003087;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 4rem;
+    }
+
+    .product-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    .product-card:hover {
+        border-color: #0070ba;
+        box-shadow: 0 8px 24px rgba(0,112,186,0.15);
+        transform: translateY(-5px);
+    }
+
+    .product-icon {
+        width: 100%;
+        height: 180px;
+        background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4rem;
+    }
+
+    .product-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: #003087;
+    }
+
+    .product-card p {
+        color: #666;
+        margin-bottom: 0.5rem;
+        min-height: 3rem;
+    }
+
+    .product-price {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0070ba;
+        margin: 1.5rem 0;
+    }
+
+    .product-tag {
+        display: inline-block;
+        background: #0070ba;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .cta-button {
+        background: #0070ba;
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 1rem;
+    }
+
+    .cta-button:hover {
+        background: #005ea6;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,112,186,0.3);
+    }
+
+    @media (max-width: 768px) {
+        .hero h1 {
+            font-size: 2rem;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+        }
+
+        .products-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="hero">
+    <h1>Mobile Plans That Work For You</h1>
+    <p>Flexible billing options designed for how you actually use your phone</p>
+</section>
+
+<section class="products-section" id="plans">
+    <h2 class="section-title">Choose Your Plan</h2>
+    
+    <div class="products-grid">
+        <!-- Subscription -->
+        <div class="product-card">
+            <div class="product-tag">MOST POPULAR</div>
+            <div class="product-icon">📱</div>
+            <h3>Unlimited Data Plan</h3>
+            <p>SIM-only monthly plan with unlimited data, calls, and texts</p>
+            <div class="product-price">$35/month</div>
+            <a href="/subscription" class="cta-button">Get Started</a>
+        </div>
+
+        <!-- Recurring -->
+        <div class="product-card">
+            <div class="product-tag">FLEXIBLE</div>
+            <div class="product-icon">📊</div>
+            <h3>Pay As You Go</h3>
+            <p>Only pay for what you use - perfect for international calling and data</p>
+            <div class="product-price">From $15/month</div>
+            <a href="/recurring" class="cta-button">Get Started</a>
+        </div>
+
+        <!-- Installments -->
+        <div class="product-card">
+            <div class="product-tag">NEW DEVICE</div>
+            <div class="product-icon">📲</div>
+            <h3>iPhone 15</h3>
+            <p>Latest iPhone with no upfront cost - just monthly installments</p>
+            <div class="product-price">$41.62/month<br><small>24 months</small></div>
+            <a href="/installments" class="cta-button">Get Started</a>
+        </div>
+
+        <!-- Bundled/Hybrid -->
+        <div class="product-card">
+            <div class="product-tag">BEST VALUE</div>
+            <div class="product-icon">🎁</div>
+            <h3>Phone + Plan Bundle</h3>
+            <p>Get a new phone and unlimited plan together with activation fee</p>
+            <div class="product-price">$199 today<br>+ $60/month</div>
+            <a href="/bundled" class="cta-button">Get Started</a>
+        </div>
+
+        <!-- Unscheduled -->
+        <div class="product-card">
+            <div class="product-tag">PREPAID</div>
+            <div class="product-icon">💰</div>
+            <h3>Auto-Reload Prepaid</h3>
+            <p>Never run out of credit - automatic top-ups when your balance is low</p>
+            <div class="product-price">Auto-reload $50<br><small>when below $10</small></div>
+            <a href="/unscheduled" class="cta-button">Get Started</a>
+        </div>
+    </div>
+</section>

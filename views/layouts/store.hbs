@@ -1,0 +1,115 @@
+<!-- views/layouts/store.hbs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - PhonePal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            height: 50px;
+            width: 50px;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .brand-name {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        .footer {
+            background: #f5f5f5;
+            padding: 3rem 2rem;
+            margin-top: 4rem;
+            text-align: center;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo-container">
+                <img src="/img/pp-logo.png" alt="PhonePal Logo" class="logo">
+                <span class="brand-name">PhonePal</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="#plans">Plans</a></li>
+                <li><a href="/webhook-activity">Webhooks</a></li>
+                <li><a href="/basic">Demo</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    {{{body}}}
+
+    <footer class="footer">
+        <p>&copy; 2026 PhonePal - Demo Application</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Built to showcase PayPal Recurring Billing Module</p>
+    </footer>
+
+    <script src="https://js.braintreegateway.com/web/3.134.0/js/client.min.js"></script> 
+    <script src="https://js.braintreegateway.com/web/3.134.0/js/paypal-checkout.min.js"></script>
+    <script src="/scripts/payment-flow.js"></script>
+</body>
+</html>

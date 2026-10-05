@@ -1,0 +1,154 @@
+<!-- views/success.hbs -->
+
+<style>
+    .success-section {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 0 2rem;
+        text-align: center;
+    }
+
+    .success-icon {
+        font-size: 5rem;
+        margin-bottom: 2rem;
+    }
+
+    .success-card {
+        background: white;
+        border: 2px solid #4caf50;
+        border-radius: 12px;
+        padding: 3rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .success-card h1 {
+        color: #4caf50;
+        margin-bottom: 1rem;
+    }
+
+    .success-card p {
+        color: #666;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .transaction-details {
+        background: #f9f9f9;
+        padding: 2rem;
+        border-radius: 8px;
+        margin: 2rem 0;
+        text-align: left;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .detail-value {
+        color: #666;
+    }
+
+    .action-buttons {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #0070ba;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #005ea6;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #0070ba;
+        border: 2px solid #0070ba;
+    }
+
+    .btn-secondary:hover {
+        background: #f0f7ff;
+    }
+
+    @media (max-width: 768px) {
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<section class="success-section">
+    <div class="success-card">
+        <div class="success-icon">✅</div>
+        <h1>Payment Successful!</h1>
+        <p>Your payment has been processed and your service is now active.</p>
+
+        <div class="transaction-details">
+            <div class="detail-row">
+                <span class="detail-label">Transaction ID:</span>
+                <span class="detail-value">{{transactionId}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Product:</span>
+                <span class="detail-value">{{productName}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Amount Charged:</span>
+                <span class="detail-value">${{amount}}</span>
+            </div>
+            {{#if recurringAmount}}
+                {{#if isVariable}}
+                <div class="detail-row">
+                    <span class="detail-label">Recurring Charge:</span>
+                    <span class="detail-value">Variable/{{frequency}} (initial: ${{recurringAmount}})</span>
+                </div>
+                {{else}}
+                <div class="detail-row">
+                    <span class="detail-label">Recurring Charge:</span>
+                    <span class="detail-value">${{recurringAmount}}/{{frequency}}</span>
+                </div>
+                {{/if}}
+            {{/if}}
+            <div class="detail-row">
+                <span class="detail-label">PayPal Email:</span>
+                <span class="detail-value">{{paypalEmail}}</span>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="/" class="btn btn-primary">Back to Home</a>
+            <a href="/basic" class="btn btn-secondary">Try Basic Demo</a>
+        </div>
+    </div>
+</section>
