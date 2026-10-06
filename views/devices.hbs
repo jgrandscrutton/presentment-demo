@@ -1,117 +1,88 @@
-{{!-- Page header --}}
-<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:56px 0 40px">
-  <div class="container">
-    <p style="font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:10px">
-      <a href="/" style="color:inherit">Home</a> &rsaquo; Devices
-    </p>
-    <h1 style="font-size:2.4rem;font-weight:800;margin-bottom:10px">All Devices</h1>
-    <p style="opacity:0.8;font-size:1.05rem">Find your perfect phone. Filter by category or browse the full range.</p>
-  </div>
-</section>
-
-{{!-- PayLater Messaging --}}
-<script
-      src="https://www.sandbox.paypal.com/web-sdk/v6/core"
-      onload="onPayPalWebSdkLoaded()">
-</script>
-<div
-    class="container">
-  <div
-    style="margin-top:10px"
-    data-pp-message
-    data-pp-style-layout="flex"
-    data-pp-style-ratio="20x1"
-    data-pp-style-color="white"
-    {{!-- data-pp-amount="ENTER_VALUE_HERE" --}}
-    data-pp-language="">
-  </div>
-</div>
-
-{{!-- Filter bar --}}
-<div style="background:#fff;border-bottom:1px solid #E0E8F0;position:sticky;top:68px;z-index:90">
-  <div class="container" style="display:flex;align-items:center;gap:10px;padding-top:14px;padding-bottom:14px;flex-wrap:wrap">
-    <span style="font-size:0.85rem;font-weight:600;color:var(--pp-muted);margin-right:4px">Filter:</span>
-    <a href="/devices"
-       class="filter-pill {{#if (eq activeCategory 'all')}}active{{/if}}">
-      All
-    </a>
-    <a href="/devices?category=flagship"
-       class="filter-pill {{#if (eq activeCategory 'flagship')}}active{{/if}}">
-      Flagship
-    </a>
-    <a href="/devices?category=midrange"
-       class="filter-pill {{#if (eq activeCategory 'midrange')}}active{{/if}}">
-      Mid-range
-    </a>
-    <a href="/devices?category=budget"
-       class="filter-pill {{#if (eq activeCategory 'budget')}}active{{/if}}">
-      Budget
-    </a>
-  </div>
-</div>
-
-{{!-- Device grid --}}
-<section class="section">
-  <div class="container">
-    {{#if devices.length}}
-    <p style="color:var(--pp-muted);font-size:0.875rem;margin-bottom:24px">Showing {{devices.length}} device{{#if (gt devices.length 1)}}s{{/if}}</p>
-    <div class="product-grid">
-      {{#each devices}}
-      <a href="/devices/{{id}}" class="product-card">
-        <div class="product-card-image">
-          {{#if badge}}
-            <span class="product-badge {{#if badgeGold}}gold{{/if}}">{{badge}}</span>
-          {{/if}}
-          {{emoji}}
-        </div>
-        <div class="product-card-body">
-          <p class="product-card-brand">{{brand}}</p>
-          <p class="product-card-name">{{name}}</p>
-          <p class="product-card-desc">{{tagline}}</p>
-
-          <ul style="list-style:none;margin-bottom:16px;display:flex;flex-direction:column;gap:4px">
-            {{#each specs}}
-            <li style="font-size:0.78rem;color:var(--pp-muted);display:flex;align-items:center;gap:6px">
-              <span style="color:var(--pp-blue);font-weight:700">·</span> {{this}}
-            </li>
-            {{/each}}
-          </ul>
-
-          <div class="product-card-footer">
-            <div>
-              <div class="product-price-sub" style="margin-bottom:2px">From</div>
-              <div class="product-price">£{{upfrontPrice}}</div>
-              <div
-                  data-pp-message
-                  data-pp-style-layout="text"
-                  data-pp-style-logo-type="primary"
-                  data-pp-style-text-color="black"
-                  data-pp-amount="{{upfrontPrice}}"
-                  data-pp-language="">
-              </div>
-            </div>
-          </div>
-        </div>
-      </a>
-      {{/each}}
-    </div>
-    {{else}}
-    <p style="color:var(--pp-muted)">No devices found in this category.</p>
-    {{/if}}
-  </div>
-</section>
-
+<!-- views/devices.hbs -->
 <style>
-  .filter-pill {
-    display: inline-block;
-    padding: 6px 18px;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border: 2px solid #E0E8F0;
-    color: var(--pp-text);
-    transition: all 0.2s ease;
-  }
-  .filter-pill:hover  { border-color: var(--pp-blue); color: var(--pp-blue); }
-  .filter-pill.active { background: var(--pp-navy); border-color: var(--pp-navy); color: #fff; }
+    .devices-hero { background: linear-gradient(135deg, #003087 0%, #0057B8 100%); color: #fff; padding: 3.5rem 2rem 2.5rem; }
+    .devices-hero-inner, .devices-container { max-width: 1200px; margin: 0 auto; }
+    .devices-crumb { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; margin-bottom: 10px; }
+    .devices-crumb a { color: inherit; text-decoration: none; }
+    .devices-hero h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 10px; }
+    .devices-hero p.sub { opacity: 0.85; font-size: 1.05rem; }
+
+    .filter-bar { background: #fff; border-bottom: 1px solid #E0E8F0; position: sticky; top: 0; z-index: 90; }
+    .filter-bar .devices-container { display: flex; align-items: center; gap: 10px; padding: 14px 2rem; flex-wrap: wrap; }
+    .filter-label { font-size: 0.85rem; font-weight: 600; color: #6C7378; margin-right: 4px; }
+    .filter-pill { display: inline-block; padding: 6px 18px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; border: 2px solid #E0E8F0; color: #333; text-decoration: none; transition: all 0.2s ease; }
+    .filter-pill:hover { border-color: #0070ba; color: #0070ba; }
+    .filter-pill.active { background: #003087; border-color: #003087; color: #fff; }
+
+    .devices-section { padding: 2rem 2rem 1rem; }
+    .devices-count { color: #6C7378; font-size: 0.875rem; margin-bottom: 24px; }
+    .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
+    .device-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,48,135,0.12); transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; color: inherit; text-decoration: none; }
+    .device-card:hover { transform: translateY(-6px); box-shadow: 0 12px 36px rgba(0,48,135,0.18); }
+    .device-card-image { background: #f0f7ff; padding: 32px; display: flex; align-items: center; justify-content: center; font-size: 5rem; min-height: 180px; position: relative; }
+    .device-badge { position: absolute; top: 12px; left: 12px; background: #003087; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 50px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .device-badge.gold { background: #FFC439; color: #003087; }
+    .device-card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .device-brand { font-size: 0.75rem; font-weight: 600; color: #0070ba; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .device-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #003087; }
+    .device-desc { font-size: 0.875rem; color: #6C7378; margin-bottom: 16px; flex: 1; }
+    .device-specs { list-style: none; margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px; }
+    .device-specs li { font-size: 0.78rem; color: #6C7378; display: flex; align-items: center; gap: 6px; }
+    .device-specs li::before { content: '·'; color: #0070ba; font-weight: 700; }
+    .device-price-sub { font-size: 0.8rem; color: #6C7378; }
+    .device-price { font-size: 1.5rem; font-weight: 700; color: #003087; }
+    .device-cta { margin-top: 12px; background: #0070ba; color: #fff; text-align: center; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; }
+    .device-card:hover .device-cta { background: #005ea6; }
 </style>
+
+<section class="devices-hero">
+    <div class="devices-hero-inner">
+        <p class="devices-crumb"><a href="/">Home</a> &rsaquo; Devices</p>
+        <h1>All Devices</h1>
+        <p class="sub">Find your perfect phone. Filter by category or browse the full range.</p>
+    </div>
+</section>
+
+<div class="filter-bar">
+    <div class="devices-container">
+        <span class="filter-label">Filter:</span>
+        <a href="/devices" class="filter-pill {{#if (eq activeCategory 'all')}}active{{/if}}">All</a>
+        <a href="/devices?category=flagship" class="filter-pill {{#if (eq activeCategory 'flagship')}}active{{/if}}">Flagship</a>
+        <a href="/devices?category=midrange" class="filter-pill {{#if (eq activeCategory 'midrange')}}active{{/if}}">Mid-range</a>
+        <a href="/devices?category=budget" class="filter-pill {{#if (eq activeCategory 'budget')}}active{{/if}}">Budget</a>
+    </div>
+</div>
+
+<section class="devices-section">
+    <div class="devices-container">
+        {{#if devices.length}}
+        <p class="devices-count">Showing {{devices.length}} device{{#if (gt devices.length 1)}}s{{/if}}</p>
+        <div class="device-grid">
+            {{#each devices}}
+            <a href="/devices/{{id}}" class="device-card">
+                <div class="device-card-image">
+                    {{#if badge}}<span class="device-badge {{#if badgeGold}}gold{{/if}}">{{badge}}</span>{{/if}}
+                    {{emoji}}
+                </div>
+                <div class="device-card-body">
+                    <p class="device-brand">{{brand}}</p>
+                    <p class="device-name">{{name}}</p>
+                    <p class="device-desc">{{tagline}}</p>
+                    <ul class="device-specs">
+                        {{#each specs}}<li>{{this}}</li>{{/each}}
+                    </ul>
+                    <div>
+                        <div class="device-price-sub">From</div>
+                        <div class="device-price">£{{upfrontPrice}}</div>
+                        <div class="device-price-sub">One-time price</div>
+                    </div>
+                    <div class="device-cta">View device</div>
+                </div>
+            </a>
+            {{/each}}
+        </div>
+        {{else}}
+        <p style="color:#6C7378">No devices found in this category.</p>
+        {{/if}}
+    </div>
+</section>

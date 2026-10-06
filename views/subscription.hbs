@@ -1,0 +1,210 @@
+<!-- views/subscription.hbs -->
+
+<style>
+    .product-hero {
+        background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
+        color: white;
+        padding: 4rem 2rem;
+    }
+
+    .product-hero-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 400px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8rem;
+    }
+
+    .product-details h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .product-tag {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .price-display {
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 1.5rem 0;
+    }
+
+    .price-display small {
+        font-size: 1.2rem;
+        font-weight: 400;
+        opacity: 0.9;
+    }
+
+    .features-list {
+        list-style: none;
+        margin: 2rem 0;
+    }
+
+    .features-list li {
+        padding: 0.5rem 0;
+        padding-left: 2rem;
+        position: relative;
+    }
+
+    .features-list li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .checkout-section {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 0 2rem;
+    }
+
+    .checkout-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 3rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .checkout-card h2 {
+        color: #003087;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .order-summary {
+        background: #f9f9f9;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .summary-row:last-child {
+        border-bottom: none;
+        font-weight: 700;
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+        border-top: 2px solid #003087;
+    }
+
+    .payment-info {
+        background: #e6f2ff;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: #003087;
+    }
+
+    #paypal-button-container {
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .product-hero-content {
+            grid-template-columns: 1fr;
+        }
+
+        .product-details h1 {
+            font-size: 2rem;
+        }
+
+        .price-display {
+            font-size: 2rem;
+        }
+
+        .checkout-card {
+            padding: 2rem 1.5rem;
+        }
+    }
+</style>
+
+<section class="product-hero">
+    <div class="product-hero-content">
+        <div class="product-image">📱</div>
+        <div class="product-details">
+            <div class="product-tag">MOST POPULAR</div>
+            <h1>Unlimited Data Plan</h1>
+            <p>SIM-only monthly plan with unlimited data, calls, and texts across the UK and EU</p>
+            <div class="price-display">$35<small>/month</small></div>
+            
+            <ul class="features-list">
+                <li>Unlimited 5G data</li>
+                <li>Unlimited calls & texts</li>
+                <li>EU roaming included</li>
+                <li>No contract - cancel anytime</li>
+                <li>Hotspot tethering included</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="checkout-section">
+    <div class="checkout-card">
+        <h2>Complete Your Order</h2>
+        
+        <div class="order-summary">
+            <div class="summary-row">
+                <span>Unlimited Data Plan</span>
+                <span>$35.00/month</span>
+            </div>
+            <div class="summary-row">
+                <span>Due Today</span>
+                <span>$0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Recurring Monthly</span>
+                <span>$35.00</span>
+            </div>
+        </div>
+
+        <div class="payment-info">
+            🔒 Secure payment powered by PayPal
+        </div>
+
+        <div id="paypal-button-container"></div>
+    </div>
+</section>
+
+<script>
+// Pre-defined billing data for this product
+const billingData = {
+    type: 'subscription',
+    description: 'Unlimited Data Plan',
+    amount: '35.00',
+    frequency: 'monthly'
+};
+
+// Initialize payment flow
+initializePayment(billingData);
+</script>
