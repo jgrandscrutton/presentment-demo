@@ -161,8 +161,8 @@ function loadWebhookEvents() {
         .then(data => {
             displayEvents(data.events, data.count);
         })
-        .catch(err => {
-            console.error('Error loading events:', err);
+        .catch(() => {
+            console.error('Error loading webhook events');
             document.getElementById('events-container').innerHTML = 
                 '<div class="no-events">Error loading events. Check console.</div>';
         });
@@ -179,22 +179,33 @@ function displayEvents(events, count) {
         return;
     }
     
-    container.innerHTML = events.map(event => {
+    container.replaceChildren();
+
+    events.forEach(event => {
         const badge = getEventBadge(event.type);
-        
-        return `
-            <div class="event-card">
-                <div class="event-header">
-                    <div>
-                        <span class="event-type">${event.type}</span>
-                        <span class="event-badge ${badge.class}">${badge.text}</span>
-                    </div>
-                    <div class="event-time">${event.receivedAt}</div>
-                </div>
-                <div class="event-data">${JSON.stringify(event.data, null, 2)}</div>
-            </div>
-        `;
-    }).join('');
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        const header = document.createElement('div');
+        header.className = 'event-header';
+        const heading = document.createElement('div');
+        const type = document.createElement('span');
+        type.className = 'event-type';
+        type.textContent = event.type;
+        const badgeElement = document.createElement('span');
+        badgeElement.className = `event-badge ${badge.class}`;
+        badgeElement.textContent = badge.text;
+        const time = document.createElement('div');
+        time.className = 'event-time';
+        time.textContent = event.receivedAt;
+        const eventData = document.createElement('div');
+        eventData.className = 'event-data';
+        eventData.textContent = JSON.stringify(event.data, null, 2);
+
+        heading.append(type, badgeElement);
+        header.append(heading, time);
+        card.append(header, eventData);
+        container.append(card);
+    });
 }
 
 function getEventBadge(type) {

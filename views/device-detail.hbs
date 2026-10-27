@@ -63,7 +63,7 @@
             <p class="dd-label" style="margin-top:16px">Storage</p>
             <div class="dd-options">
                 {{#each device.storage}}
-                <button type="button" class="dd-pill storage-pill {{#if @first}}active{{/if}}" data-size="{{size}}" data-price="{{upfrontPrice}}">{{size}}</button>
+                <button type="button" class="dd-pill storage-pill {{#if @first}}active{{/if}}" data-size="{{size}}" data-price="{{upfrontAmount}}" data-price-formatted="{{upfrontFormatted}}">{{size}}</button>
                 {{/each}}
             </div>
         </div>
@@ -74,7 +74,7 @@
             <p class="dd-tagline">{{device.tagline}}</p>
 
             <div class="dd-price-block">
-                <div class="dd-price">£<span id="price-upfront">{{device.upfrontPrice}}</span></div>
+                <div class="dd-price"><span id="price-upfront">{{device.upfrontFormatted}}</span></div>
                 <div class="dd-price-sub">One-time payment</div>
             </div>
 
@@ -121,7 +121,8 @@ const billingData = {
     deviceName: '{{device.brand}} {{device.name}}',
     colour: document.querySelector('.colour-pill.active') ? document.querySelector('.colour-pill.active').dataset.colour : '',
     storage: '{{device.storage.0.size}}',
-    amount: '{{device.upfrontPrice}}',
+    amount: '{{device.upfrontAmount}}',
+    currency: '{{storefront.currency}}',
     containerId: 'paypal-button-container'
 };
 billingData.description = billingData.deviceName + ' (' + billingData.storage + ', ' + billingData.colour + ')';
@@ -145,7 +146,7 @@ document.querySelectorAll('.storage-pill').forEach(function (btn) {
         btn.classList.add('active');
         billingData.storage = btn.dataset.size;
         billingData.amount = btn.dataset.price;
-        document.getElementById('price-upfront').textContent = btn.dataset.price;
+        document.getElementById('price-upfront').textContent = btn.dataset.priceFormatted;
         refreshDescription();
     });
 });

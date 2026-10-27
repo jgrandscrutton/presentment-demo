@@ -164,7 +164,7 @@
             <div class="product-tag">NEW DEVICE</div>
             <h1>iPhone 15</h1>
             <p>Get the latest iPhone with fast, secure checkout using PayPal</p>
-            <div class="price-display">£999.00<small> one-time</small></div>
+            <div class="price-display">{{prices.iphone15.formatted}}<small> one-time</small></div>
             
             <ul class="features-list">
                 <li>iPhone 15 128GB</li>
@@ -181,17 +181,17 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>One-time payment:</strong> You will be charged £999.00 today.
+            <strong>One-time payment:</strong> You will be charged {{prices.iphone15.formatted}} today.
         </div>
         
         <div class="order-summary">
             <div class="summary-row">
                 <span>iPhone 15 (128GB)</span>
-                <span>£999.00</span>
+                <span>{{prices.iphone15.formatted}}</span>
             </div>
             <div class="summary-row">
                 <span>Due Today</span>
-                <span>£999.00</span>
+                <span>{{prices.iphone15.formatted}}</span>
             </div>
         </div>
 
@@ -209,7 +209,8 @@
 const billingData = {
     type: 'one-time',
     description: 'iPhone 15 (128GB)',
-    amount: '999.00',
+    amount: '{{prices.iphone15.amount}}',
+    currency: '{{storefront.currency}}',
     containerId: 'paypal-button-container'
 };
 

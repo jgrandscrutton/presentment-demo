@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Durable audit log and live Sandbox operations for the Braintree routing demonstration.">
+  <title>{{title}} · PhonePal</title>
+  <link rel="stylesheet" href="/stylesheets/demo.css">
+</head>
+<body data-catalog-available="{{catalogAvailable}}" data-catalog-status="{{catalogStatus}}">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="PhonePal home">
+      <img src="/img/pp-logo.png" alt="" width="40" height="40">
+      <span>PhonePal</span>
+    </a>
+    <nav class="demo-nav" aria-label="Demo sections">
+      <a href="/demo">Scenario runner</a>
+      <a href="/demo/log" aria-current="page">Transaction log</a>
+    </nav>
+    <div class="environment-pill" aria-label="Environment: Braintree Sandbox">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span class="environment-label-full">Braintree Sandbox</span>
+      <span class="environment-label-short">Sandbox</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="log-hero" aria-labelledby="page-title">
+      <p class="eyebrow"><span>Stage 2</span> Transaction lifecycle</p>
+      <h1 id="page-title">Every request.<br><em>One durable proof trail.</em></h1>
+      <p>Filter persisted demo events, inspect the redacted gateway result, and run only the operations Braintree permits in the transaction's current live state.</p>
+    </section>
+
+    <section class="log-shell" aria-labelledby="log-title">
+      <div class="log-summary-bar">
+        <div>
+          <p class="section-kicker">Durable local audit</p>
+          <h2 id="log-title">Transaction activity</h2>
+        </div>
+        <p class="log-count">Showing {{visibleCount}} of {{totalCount}} events · current gateway <code>{{currentGateway}}</code></p>
+      </div>
+
+      <form class="log-filters" action="/demo/log" method="get">
+        <label>
+          <span>Gateway</span>
+          <select name="gateway">
+            {{#each gatewayOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>Currency</span>
+          <select name="currency">
+            {{#each currencyOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>Merchant account</span>
+          <select name="account">
+            {{#each accountOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+        </label>
+        <button class="secondary-button" type="submit">Apply filters</button>
+      </form>
+
+      {{#if hasRows}}
+        <div class="log-list" aria-live="polite">
+          {{#each rows}}
+            <details class="transaction-log-entry" id="event-{{id}}" data-event-id="{{id}}" data-operable="{{canOperate}}">
+              <summary>
+                <div class="log-cell"><span>Time</span><strong>{{timestampLabel}}</strong></div>
+                <div class="log-cell"><span>Scenario / event</span><strong>{{scenarioLabel}}</strong><code>{{eventTypeLabel}}</code></div>
+                <div class="log-cell"><span>Amount</span><strong>{{amountLabel}}{{#if currency}} · {{currency}}{{/if}}</strong></div>
+                <div class="log-cell"><span>Merchant account</span><strong>{{accountLabel}}</strong>{{#if accountId}}<code>{{accountId}}</code>{{/if}}</div>
+                <div class="log-cell"><span>Method</span><strong>{{paymentMethodLabel}}</strong></div>
+                <div class="log-cell"><span>Outcome</span><strong>{{statusLabel}}</strong><span class="log-proof {{verificationClass}}">{{verificationLabel}}</span></div>
+                <span class="log-toggle" aria-hidden="true">+</span>
+              </summary>
+              <div class="log-details">
+                <section class="log-inspector" aria-label="Redacted event inspector">
+                  <h3>Redacted persisted event</h3>
+                  <pre>{{inspectorJson}}</pre>
+                </section>
+                <section class="operation-panel" aria-label="Transaction operations">
+                  <h3>Live transaction controls</h3>
+                  {{#if canOperate}}
+                    <p class="operation-status" data-live-status>Checking live Braintree status…</p>
+                    <div class="action-groups" data-action-controls hidden>
+                      <div class="action-group" data-action-group="capture" hidden>
+                        <strong>Capture authorization</strong>
+                        <button class="secondary-button single-action" type="button" data-operation="capture">Capture full amount</button>
+                        <div class="action-row">
+                          <input type="text" inputmode="decimal" aria-label="Partial capture amount" data-action-amount="capture">
+                          <button class="secondary-button" type="button" data-operation="capture" data-amount-source="capture">Partial capture</button>
+                        </div>
+                        <small data-maximum-copy="capture"></small>
+                      </div>
+                      <div class="action-group" data-action-group="void" hidden>
+                        <strong>Cancel before settlement</strong>
+                        <button class="secondary-button single-action" type="button" data-operation="void">Void transaction</button>
+                      </div>
+                      <div class="action-group" data-action-group="settle" hidden>
+                        <strong>Advance Sandbox state</strong>
+                        <button class="secondary-button single-action" type="button" data-operation="settle">Settle now · Sandbox only</button>
+                      </div>
+                      <div class="action-group" data-action-group="refund" hidden>
+                        <strong>Refund settled payment</strong>
+                        <button class="secondary-button single-action" type="button" data-operation="refund">Refund remaining amount</button>
+                        <div class="action-row">
+                          <input type="text" inputmode="decimal" aria-label="Partial refund amount" data-action-amount="refund">
+                          <button class="secondary-button" type="button" data-operation="refund" data-amount-source="refund">Partial refund</button>
+                        </div>
+                        <small data-maximum-copy="refund"></small>
+                      </div>
+                    </div>
+                    <p class="readonly-note" data-no-actions hidden>No follow-up action is valid in the current live state.</p>
+                  {{else}}
+                    <p class="readonly-note">{{operationReason}}</p>
+                  {{/if}}
+                  <div class="log-links">
+                    {{#if controlPanelUrl}}<a href="{{controlPanelUrl}}" target="_blank" rel="noreferrer">Open in Sandbox Control Panel ↗</a>{{/if}}
+                    {{#if relatedEventId}}<a href="#event-{{relatedEventId}}">View original audit event</a>{{/if}}
+                  </div>
+                </section>
+              </div>
+            </details>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="empty-log">
+          <strong>No events match these filters.</strong>
+          <p>Run a scenario or broaden the gateway, currency, and account filters.</p>
+        </div>
+      {{/if}}
+    </section>
+  </main>
+
+  <footer>
+    <p>PhonePal · Braintree routing demonstration</p>
+    <p>Stage 2 / Sandbox only</p>
+  </footer>
+  <script src="/scripts/demo-log.js"></script>
+</body>
+</html>

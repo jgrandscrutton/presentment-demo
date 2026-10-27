@@ -10,7 +10,12 @@
     <!-- includes jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
   </head>
-  <body>
+  <body data-store-currency="{{storefront.currency}}" data-store-zero-amount="{{storefront.zeroAmount}}">
+    {{#if storefront.rateLabel}}
+    <div role="note" style="background:#fff8dd;border-bottom:1px solid #ead58a;color:#5d4a00;font:600 0.86rem/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:0.65rem 1rem;text-align:center;">
+      {{storefront.rateLabel}}
+    </div>
+    {{/if}}
     {{{body}}}
   </body>
 </html>

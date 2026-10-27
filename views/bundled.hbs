@@ -175,11 +175,11 @@
             <div class="product-tag">BEST VALUE</div>
             <h1>iPhone 15 + Unlimited Plan</h1>
             <p>Get the latest iPhone and unlimited data plan together - activation fee applies</p>
-            <div class="price-display">$199 today<br><small>+ $60/month</small></div>
+            <div class="price-display">{{prices.bundleSetup.formatted}} today<br><small>+ {{prices.bundleMonthly.formatted}}/month</small></div>
             
             <div class="price-breakdown">
-                <div><strong>Today:</strong> $199 activation fee</div>
-                <div><strong>Monthly:</strong> $60 (phone payment + unlimited plan)</div>
+                <div><strong>Today:</strong> {{prices.bundleSetup.formatted}} activation fee</div>
+                <div><strong>Monthly:</strong> {{prices.bundleMonthly.formatted}} (phone payment + unlimited plan)</div>
             </div>
             
             <ul class="features-list">
@@ -198,21 +198,21 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>Bundle Details:</strong> Pay $199 activation fee today, then $60/month ongoing (includes device payment and unlimited plan).
+            <strong>Bundle Details:</strong> Pay {{prices.bundleSetup.formatted}} activation fee today, then {{prices.bundleMonthly.formatted}}/month ongoing (includes device payment and unlimited plan).
         </div>
         
         <div class="order-summary">
             <div class="summary-row">
                 <span>Activation Fee</span>
-                <span>$199.00</span>
+                <span>{{prices.bundleSetup.formatted}}</span>
             </div>
             <div class="summary-row">
                 <span>Monthly (Phone + Plan)</span>
-                <span>$60.00/month</span>
+                <span>{{prices.bundleMonthly.formatted}}/month</span>
             </div>
             <div class="summary-row">
                 <span>Due Today</span>
-                <span>$199.00</span>
+                <span>{{prices.bundleSetup.formatted}}</span>
             </div>
         </div>
 
@@ -229,11 +229,14 @@
 const billingData = {
     type: 'hybrid',
     description: 'iPhone 15 + Unlimited Plan Bundle',
-    oneTimeAmount: '199.00',
-    recurringAmount: '60.00',
+    oneTimeAmount: '{{prices.bundleSetup.amount}}',
+    recurringAmount: '{{prices.bundleMonthly.amount}}',
+    currency: '{{storefront.currency}}',
     frequency: 'monthly'
 };
 
-// Initialize payment flow
-initializePayment(billingData);
+// payment-flow.js loads after this view (see layouts/store.hbs).
+window.addEventListener('load', function () {
+    initializePayment(billingData);
+});
 </script>

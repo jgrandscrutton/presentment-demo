@@ -1,5 +1,9 @@
 node_modules/
 .env
+config.env
 .DS_Store
+/data/runtime/
 *.json
-package-lock.json
+!package-lock.json
+/config/routing-policies/*.json
+!/config/routing-policies/example.json

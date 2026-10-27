@@ -125,25 +125,21 @@
             </div>
             <div class="detail-row">
                 <span class="detail-label">Amount Charged:</span>
-                <span class="detail-value">${{amount}}</span>
+                <span class="detail-value">{{amountFormatted}}</span>
             </div>
             {{#if recurringAmount}}
                 {{#if isVariable}}
                 <div class="detail-row">
                     <span class="detail-label">Recurring Charge:</span>
-                    <span class="detail-value">Variable/{{frequency}} (initial: ${{recurringAmount}})</span>
+                    <span class="detail-value">Variable/{{frequency}} (initial: {{recurringAmountFormatted}})</span>
                 </div>
                 {{else}}
                 <div class="detail-row">
                     <span class="detail-label">Recurring Charge:</span>
-                    <span class="detail-value">${{recurringAmount}}/{{frequency}}</span>
+                    <span class="detail-value">{{recurringAmountFormatted}}/{{frequency}}</span>
                 </div>
                 {{/if}}
             {{/if}}
-            <div class="detail-row">
-                <span class="detail-label">PayPal Email:</span>
-                <span class="detail-value">{{paypalEmail}}</span>
-            </div>
         </div>
 
         <div class="action-buttons">

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A sandbox demonstration of server-side payment routing across dynamically discovered Braintree merchant accounts.">
+  <title>{{title}} · PhonePal</title>
+  <link rel="stylesheet" href="/stylesheets/demo.css">
+</head>
+<body data-catalog-available="{{catalogAvailable}}" data-catalog-status="{{catalogStatus}}">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="PhonePal home">
+      <img src="/img/pp-logo.png" alt="" width="40" height="40">
+      <span>PhonePal</span>
+    </a>
+    <nav class="demo-nav" aria-label="Demo sections">
+      <a href="#runner">Run scenario</a>
+      <a href="#account-registry">Account registry</a>
+      <a href="/demo/log">Transaction log</a>
+    </nav>
+    <div class="environment-pill" aria-label="Environment: Braintree Sandbox">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span class="environment-label-full">Braintree Sandbox</span>
+      <span class="environment-label-short">Sandbox</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="demo-hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span>Stage 2</span> Payment lifecycle</p>
+        <h1 id="page-title">One checkout.<br><em>Every gateway outcome.</em></h1>
+        <p class="hero-summary">
+          Route a sale or authorization through a discovered merchant account, prove expected Sandbox declines, then inspect every result in the transaction log.
+        </p>
+      </div>
+      <ol class="proof-strip" aria-label="Routing proof sequence">
+        <li><span>1</span><strong>Route</strong><small>Type + currency</small></li>
+        <li><span>2</span><strong>Execute</strong><small>Sale or authorize</small></li>
+        <li><span>3</span><strong>Operate</strong><small>Log + actions</small></li>
+      </ol>
+    </section>
+
+    <section class="runner-section" id="runner" aria-labelledby="runner-title">
+      <div class="section-heading runner-heading">
+        <div>
+          <p class="section-kicker">Interactive sandbox</p>
+          <h2 id="runner-title">Run the routing story</h2>
+        </div>
+        <p>The browser never selects or submits a merchant account ID.</p>
+      </div>
+
+      {{#unless catalogAvailable}}
+        <div class="catalog-unavailable" role="alert">
+          <div>
+            <p class="section-kicker">Gateway unavailable</p>
+            <h3>Merchant accounts could not be discovered safely.</h3>
+            <p>{{discoveryError}} Routing and payment controls stay disabled so no request can fall through to a gateway default.</p>
+          </div>
+          <button class="secondary-button catalog-refresh-button" type="button" data-catalog-refresh>Retry discovery</button>
+          <p class="refresh-status" data-refresh-status aria-live="polite"></p>
+        </div>
+      {{/unless}}
+
+      {{#if scenarios.length}}
+        <div class="scenario-presets" role="group" aria-label="Scenario presets">
+          {{#each scenarios}}
+            <button class="scenario-preset{{#if @first}} is-selected{{/if}}" type="button"
+              data-scenario-id="{{id}}" data-currency="{{currency}}"
+              data-payment-type="{{paymentType}}" data-amount="{{amount}}"
+              data-transaction-mode="{{transactionMode}}"
+              data-expected-outcome="{{expectedOutcome}}"
+              aria-pressed="{{#if @first}}true{{else}}false{{/if}}">
+              <span class="preset-currency">{{currency}}</span>
+              <span><strong>{{title}}</strong><small>{{subtitle}}</small></span>
+            </button>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      <div class="demo-workbench">
+        <section class="checkout-panel" aria-labelledby="checkout-title">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-index">01 · Customer intent</p>
+              <h3 id="checkout-title">Checkout</h3>
+            </div>
+            <span class="unchanged-pill">Same UI</span>
+          </div>
+
+          <form id="demo-payment-form" novalidate>
+            <input type="hidden" id="scenario-id" value="{{initialScenarioId}}">
+            <div class="intent-grid">
+              <label>
+                <span>Payment type</span>
+                <select id="payment-type" name="paymentType" {{#unless catalogAvailable}}disabled{{/unless}}>
+                  <option value="one_time">One-time purchase</option>
+                  <option value="recurring">Recurring billing preview</option>
+                </select>
+              </label>
+              <label>
+                <span>Currency</span>
+                <select id="currency" name="currency" {{#unless catalogAvailable}}disabled{{/unless}}>
+                  {{#if currencyOptions.length}}
+                    {{#each currencyOptions}}
+                      <option value="{{code}}"
+                        data-symbol="{{symbol}}"
+                        data-minimum="{{minimum}}"
+                        data-maximum="{{maximum}}"
+                        data-step="{{step}}"
+                        data-demo-amount="{{demoAmount}}"
+                        data-demo-rate="{{demoRate}}"
+                        data-processor-declined-amount="{{processorDeclinedAmount}}"
+                        data-gateway-rejected-amount="{{gatewayRejectedAmount}}"
+                        data-unsupported="{{unsupported}}">{{label}}</option>
+                    {{/each}}
+                  {{else}}
+                    <option value="">Unavailable</option>
+                  {{/if}}
+                </select>
+              </label>
+              <label>
+                <span>Gateway action</span>
+                <select id="transaction-mode" name="transactionMode" {{#unless catalogAvailable}}disabled{{/unless}}>
+                  <option value="submit_for_settlement">Sale · submit for settlement</option>
+                  <option value="authorize_only">Authorize only</option>
+                </select>
+              </label>
+              <label>
+                <span>Expected outcome</span>
+                <select id="expected-outcome" name="expectedOutcome" {{#unless catalogAvailable}}disabled{{/unless}}>
+                  <option value="approved">Approved</option>
+                  <option value="processor_declined">Processor decline · Sandbox</option>
+                  <option value="gateway_rejected">Gateway rejection · Sandbox</option>
+                </select>
+              </label>
+              <label class="amount-field">
+                <span>Amount</span>
+                <span class="amount-input">
+                  <span id="currency-prefix">{{initialCurrencySymbol}}</span>
+                  <input id="amount" name="amount" type="number"
+                    inputmode="{{initialInputMode}}"
+                    min="{{initialMinimum}}" max="{{initialMaximum}}" step="{{initialStep}}"
+                    value="{{initialAmount}}" required {{#unless catalogAvailable}}disabled{{/unless}}>
+                </span>
+                <small class="amount-guidance">
+                  <span id="demo-rate">{{initialDemoRate}}</span> · {{demoFxLabel}}
+                </small>
+              </label>
+            </div>
+
+            <p class="fx-disclaimer">{{demoFxDisclaimer}}</p>
+            <p id="sandbox-outcome-notice" class="fx-disclaimer" hidden>
+              This exact amount is a Braintree Sandbox test trigger, not a converted demo price.
+            </p>
+
+            <div id="stage-three-notice" class="stage-notice" hidden>
+              <strong>Route preview only</strong>
+              <span>Vaulting and simulated billing cycles arrive in Stage 3. No recurring charge will be sent now.</span>
+            </div>
+
+            <div id="no-route-notice" class="stage-notice no-route-notice" hidden>
+              <strong>No configured route</strong>
+              <span>The server will stop before generating a client token or calling Braintree.</span>
+            </div>
+
+            <fieldset id="card-fields" class="card-fields is-disabled" disabled>
+              <legend>Sandbox card</legend>
+              <div class="hosted-field-group hosted-field-wide">
+                <label for="card-number">Card number</label>
+                <div id="card-number" class="hosted-field" aria-label="Card number"></div>
+              </div>
+              <div class="hosted-field-group">
+                <label for="expiration-date">Expiry</label>
+                <div id="expiration-date" class="hosted-field" aria-label="Expiration date"></div>
+              </div>
+              <div class="hosted-field-group">
+                <label for="cvv">Security code</label>
+                <div id="cvv" class="hosted-field" aria-label="Security code"></div>
+              </div>
+            </fieldset>
+
+            <p class="sandbox-card-hint" id="sandbox-card-hint" hidden>Sandbox: use <code>4111 1111 1111 1111</code>, any future expiry, and any 3-digit CVV.</p>
+            <div id="checkout-status" class="checkout-status" role="status" aria-live="polite">
+              {{#if catalogAvailable}}Previewing the selected route…{{else}}Gateway unavailable. Retry merchant account discovery to enable this demo.{{/if}}
+            </div>
+
+            <div class="checkout-actions">
+              <button id="preview-route" class="secondary-button" type="button" {{#unless catalogAvailable}}disabled{{/unless}}>Preview route</button>
+              <button id="run-payment" class="primary-button" type="submit" disabled>
+                <span id="run-payment-label">Run sandbox payment</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="inspector-panel" aria-labelledby="inspector-title">
+          <div class="panel-heading inspector-heading">
+            <div>
+              <p class="panel-index">02 · Server decision + proof</p>
+              <h3 id="inspector-title">Routing inspector</h3>
+            </div>
+            <span id="inspector-state" class="inspector-state {{#if catalogAvailable}}is-waiting{{else}}is-blocked{{/if}}">
+              {{#if catalogAvailable}}Waiting{{else}}Unavailable{{/if}}
+            </span>
+          </div>
+
+          <div id="route-summary" class="route-summary" aria-live="polite">
+            <div class="route-node intent-node">
+              <span>Intent</span>
+              <strong id="intent-summary">{{#if catalogAvailable}}{{initialCurrency}} · One-time{{else}}Gateway unavailable{{/if}}</strong>
+            </div>
+            <span class="route-arrow" aria-hidden="true">→</span>
+            <div class="route-node account-node">
+              <span>Selected account</span>
+              <strong id="account-summary">{{#if catalogAvailable}}Resolving…{{else}}No catalog{{/if}}</strong>
+            </div>
+          </div>
+
+          <p id="route-reason" class="route-reason">
+            {{#if catalogAvailable}}The server is evaluating the current discovered catalog.{{else}}{{discoveryError}}{{/if}}
+          </p>
+
+          <div class="verification-card" id="verification-card" hidden>
+            <span class="verification-icon" id="verification-icon" aria-hidden="true">✓</span>
+            <div>
+              <strong id="verification-title">Route verified</strong>
+              <p id="verification-copy"></p>
+            </div>
+          </div>
+
+          <details class="inspector-details" open>
+            <summary>Decision trace <span id="trace-count">0 checks</span></summary>
+            <ol id="decision-trace" class="decision-trace"></ol>
+          </details>
+
+          <details class="inspector-details">
+            <summary>Redacted server request</summary>
+            <pre id="request-json">{}</pre>
+          </details>
+
+          <details class="inspector-details" id="result-details">
+            <summary>Sanitized Braintree result</summary>
+            <pre id="result-json">No transaction has been sent.</pre>
+          </details>
+
+          <a id="control-panel-link" class="control-panel-link" href="https://sandbox.braintreegateway.com/" target="_blank" rel="noopener noreferrer" hidden>
+            Open transaction in Sandbox Control Panel <span aria-hidden="true">↗</span>
+          </a>
+        </section>
+      </div>
+    </section>
+
+    <section class="registry-section" id="account-registry" aria-labelledby="registry-title">
+      <div class="section-heading registry-heading">
+        <div>
+          <p class="section-kicker">Discovered gateway configuration</p>
+          <h2 id="registry-title">Merchant account registry</h2>
+        </div>
+        <div class="registry-actions">
+          <p data-catalog-stale-content>{{accountCount}} accounts · {{currencyCount}} discovered currencies</p>
+          <button class="secondary-button catalog-refresh-button" type="button" data-catalog-refresh>Refresh from gateway</button>
+          <span class="refresh-status" data-refresh-status aria-live="polite"></span>
+        </div>
+      </div>
+
+      <dl class="catalog-metadata" data-catalog-stale-content>
+        <div><dt>Gateway merchant ID</dt><dd><code>{{gatewayMerchantId}}</code></dd></div>
+        <div><dt>Discovery status</dt><dd><span class="catalog-status status-{{catalogStatus}}">{{catalogStatus}}</span></dd></div>
+        <div><dt>Discovered at</dt><dd>{{#if discoveredAt}}<time datetime="{{discoveredAt}}">{{discoveredAtLabel}}</time>{{else}}{{discoveredAtLabel}}{{/if}}</dd></div>
+        <div><dt>Policy overlay</dt><dd>{{policyStatus}}</dd></div>
+      </dl>
+
+      {{#if hasWarnings}}
+        <aside class="catalog-warnings" aria-labelledby="catalog-warning-title" data-catalog-stale-content>
+          <h3 id="catalog-warning-title">Catalog warnings</h3>
+          <ul>
+            {{#each warnings}}
+              <li><code>{{code}}</code> {{message}}</li>
+            {{/each}}
+          </ul>
+        </aside>
+      {{/if}}
+
+      {{#if accounts.length}}
+        <div class="account-grid" data-catalog-stale-content>
+          {{#each accounts}}
+            <article class="account-card{{#if isDefault}} default-account{{/if}}">
+              <div class="account-card-topline">
+                <span class="currency-mark" aria-label="Currency {{currency}}">{{currency}}</span>
+                <span class="account-status {{statusClass}}"><span aria-hidden="true"></span>{{status}}</span>
+              </div>
+              <div class="account-title-row">
+                <div>
+                  <p class="account-label">{{label}}</p>
+                  <h3><code>{{merchantAccountId}}</code></h3>
+                </div>
+                {{#if isDefault}}<span class="default-pill" title="Gateway context only; routing never falls back to this account.">Gateway default · no fallback</span>{{/if}}
+              </div>
+              <p class="account-purpose">{{purpose}}</p>
+              <div class="assignment-state assignment-{{assignmentState}}">{{assignmentStateLabel}}</div>
+              <div class="account-meta">
+                <div>
+                  <span class="meta-label">Payment roles</span>
+                  {{#if hasPaymentTypes}}
+                    <div class="type-list">
+                      {{#each paymentTypes}}
+                        <span class="type-pill type-{{key}}">{{label}} <small>{{sourceLabel}}</small></span>
+                      {{/each}}
+                    </div>
+                  {{else}}
+                    <span class="unassigned-copy">No routing roles</span>
+                  {{/if}}
+                </div>
+                <div class="role-source">
+                  <span class="meta-label">Role source</span>
+                  <strong>{{roleSourceLabel}}</strong>
+                </div>
+              </div>
+            </article>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="empty-registry">
+          <strong>No merchant account catalog is available.</strong>
+          <span>Refresh discovery after checking the Sandbox gateway credentials and connectivity.</span>
+        </div>
+      {{/if}}
+
+      <p class="policy-note" data-catalog-stale-content><strong>Assignment note:</strong> roles come from the merchant-specific policy overlay when present. Any remaining routes are assigned deterministically from active discovered accounts; extra variants remain visible as “Available · not assigned”.</p>
+    </section>
+
+    <section class="review-gate" aria-labelledby="review-title">
+      <div class="review-icon" aria-hidden="true">2</div>
+      <div>
+        <p class="section-kicker">Stage 2 review gate</p>
+        <h2 id="review-title">Authorization, settlement, refunds, and expected failures are inspectable.</h2>
+        <p>Review the runner, transaction log, post-payment actions, and Sandbox decline proof before Stage 3.</p>
+      </div>
+      <span class="review-status"><span aria-hidden="true">✓</span> Ready for review</span>
+    </section>
+  </main>
+
+  <footer>
+    <p>PhonePal · Braintree routing demonstration</p>
+    <p>Stage 2 / Sandbox only</p>
+  </footer>
+
+  <script src="https://js.braintreegateway.com/web/3.146.0/js/client.min.js"></script>
+  <script src="https://js.braintreegateway.com/web/3.146.0/js/hosted-fields.min.js"></script>
+  <script src="/scripts/demo.js"></script>
+</body>
+</html>

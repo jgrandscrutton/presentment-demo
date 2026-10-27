@@ -1,0 +1,13 @@
+{
+  "merchantId": "your_braintree_sandbox_merchant_id",
+  "accounts": {
+    "example_primary_account": {
+      "label": "Primary demo account",
+      "paymentTypes": ["one_time", "recurring"]
+    },
+    "example_subscription_account": {
+      "label": "Subscription demo account",
+      "paymentTypes": ["recurring"]
+    }
+  }
+}

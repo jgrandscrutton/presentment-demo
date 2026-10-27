@@ -21,6 +21,9 @@
 </div>
 
 <script>
+    const storefrontCurrency = document.body.dataset.storeCurrency;
+    const storefrontZeroAmount = document.body.dataset.storeZeroAmount || '0';
+
     document.getElementById('billing-type').addEventListener('change', function(e) {
     const billingType = e.target.value;
     const detailsDiv = document.getElementById('payment-details');
@@ -43,8 +46,8 @@
     switch(type) {
         case 'subscription':
         return commonFields + `
-            <label>Amount (USD):</label>
-            <input type="number" id="amount" step="0.01" placeholder="9.99" />
+            <label>Amount ({{storefront.currency}}):</label>
+            <input type="number" id="amount" step="{{storefront.step}}" placeholder="{{prices.basicSubscription.amount}}" />
             
             <label>Billing Frequency:</label>
             <select id="frequency">
@@ -56,8 +59,8 @@
         
         case 'recurring':
         return commonFields + `
-            <label>Initial Amount (USD):</label>
-            <input type="number" id="amount" step="0.01" placeholder="25.00" />
+            <label>Initial Amount ({{storefront.currency}}):</label>
+            <input type="number" id="amount" step="{{storefront.step}}" placeholder="{{prices.paygInitial.amount}}" />
             <p><em>Note: Amount can vary in future charges</em></p>
             
             <label>Billing Frequency:</label>
@@ -70,12 +73,12 @@
         
         case 'unscheduled':
             return commonFields + `
-                <label>Reload Amount (USD):</label>
-                <input type="number" id="reloadAmount" step="0.01" placeholder="50.00" required />
+                <label>Reload Amount ({{storefront.currency}}):</label>
+                <input type="number" id="reloadAmount" step="{{storefront.step}}" placeholder="{{prices.reload.amount}}" required />
                 <p><em>Amount to reload when balance drops below threshold</em></p>
                 
-                <label>Reload Threshold (USD):</label>
-                <input type="number" id="reloadThreshold" step="0.01" placeholder="10.00" required />
+                <label>Reload Threshold ({{storefront.currency}}):</label>
+                <input type="number" id="reloadThreshold" step="{{storefront.step}}" placeholder="{{prices.reloadThreshold.amount}}" required />
                 <p><em>Trigger reload when balance drops below this amount</em></p>
                 
                 <p><em>First reload of this amount will be charged today</em></p>
@@ -83,8 +86,8 @@
         
         case 'installments':
         return commonFields + `
-            <label>Amount per Installment (USD):</label>
-            <input type="number" id="amount" step="0.01" placeholder="100.00" />
+            <label>Amount per Installment ({{storefront.currency}}):</label>
+            <input type="number" id="amount" step="{{storefront.step}}" placeholder="{{prices.basicInstallment.amount}}" />
             
             <label>Billing Frequency:</label>
             <select id="frequency">
@@ -98,11 +101,11 @@
         
         case 'hybrid':
         return commonFields + `
-            <label>One-time Amount (USD):</label>
-            <input type="number" id="oneTimeAmount" step="0.01" placeholder="50.00" />
+            <label>One-time Amount ({{storefront.currency}}):</label>
+            <input type="number" id="oneTimeAmount" step="{{storefront.step}}" placeholder="{{prices.reload.amount}}" />
             
-            <label>Recurring Amount (USD):</label>
-            <input type="number" id="recurringAmount" step="0.01" placeholder="10.00" />
+            <label>Recurring Amount ({{storefront.currency}}):</label>
+            <input type="number" id="recurringAmount" step="{{storefront.step}}" placeholder="{{prices.reloadThreshold.amount}}" />
             
             <label>Billing Frequency:</label>
             <select id="frequency">
@@ -168,7 +171,8 @@
         
         const data = {
             type: type,
-            description: description
+            description: description,
+            currency: storefrontCurrency
         };
         
         switch(type) {
@@ -249,7 +253,7 @@
         document.getElementById('paypal-button-container').innerHTML = '';
         
         // Your existing Braintree setup code here...
-        fetch('/api/client-token')
+        fetch('/api/client-token?paymentType=recurring')
         .then(response => response.text())
         .then(clientToken => {
             return braintree.client.create({
@@ -283,10 +287,6 @@
                 onApprove: function(data, actions) {
                     return paypalCheckoutInstance.tokenizePayment(data)
                         .then(payload => {
-                        console.log('Payment method nonce:', payload.nonce);
-                        console.log('PayPal email:', payload.details.email);
-                        console.log('Billing data:', currentBillingData);
-                        
                         // Send to server to create subscription
                         return fetch('/api/create-subscription', {
                             method: 'POST',
@@ -295,15 +295,12 @@
                             },
                             body: JSON.stringify({
                             nonce: payload.nonce,
-                            billingData: currentBillingData,
-                            paypalEmail: payload.details.email
+                            billingData: currentBillingData
                             })
                         });
                         })
                         .then(response => response.json())
                         .then(result => {
-                        console.log('Subscription created:', result);
-                        
                         if (result.success) {
                             alert(`Success! Subscription ID: ${result.subscriptionId}`);
                             // Could redirect to a success page here
@@ -312,19 +309,19 @@
                         }
                         })
                         .catch(err => {
-                        console.error('Error:', err);
+                    console.error('Payment could not be completed');
                         alert('An error occurred. Check console for details.');
                         });
                     },
                 
                 onError: function(err) {
-                    console.error('PayPal error:', err);
+                    console.error('PayPal error');
                     alert('An error occurred. Check console for details.');
                 }
             }).render('#paypal-button-container');
         })
         .catch(err => {
-            console.error('Error setting up PayPal:', err);
+            console.error('Error setting up PayPal');
         });
     }
 
@@ -368,9 +365,9 @@
                         price: planDetails.amount
                     }
                     }],
-                    currencyIsoCode: 'USD',
+                    currencyIsoCode: planDetails.currencyIsoCode || planDetails.currency || storefrontCurrency,
                     name: planDetails.description,
-                    totalAmount: '0.00' // No upfront charges, billing starts on startDate
+                    totalAmount: storefrontZeroAmount // No upfront charges, billing starts on startDate
                 };
                 break;
 
@@ -382,9 +379,7 @@
                 console.log('Recurring planDetails:', planDetails);
                 console.log('planDetails.amount:', planDetails.amount, 'type:', typeof planDetails.amount);
                 
-                const initialAmount = parseFloat(planDetails.amount);
-                console.log('initialAmount parsed:', initialAmount);
-                console.log('initialAmount.toFixed(2):', initialAmount.toFixed(2));
+                const initialAmount = String(planDetails.amount);
                 
                 options.planType = 'RECURRING';
                 options.planMetadata = {
@@ -397,18 +392,18 @@
                     trial: false,
                     pricingScheme: {
                         pricingModel: 'VARIABLE',
-                        price: initialAmount.toFixed(2)
+                        price: initialAmount
                     }
                     }],
-                    currencyIsoCode: 'USD',
+                    currencyIsoCode: planDetails.currencyIsoCode || planDetails.currency || storefrontCurrency,
                     name: planDetails.description,
-                    totalAmount: '0.00'
+                    totalAmount: storefrontZeroAmount
                 };
                 break;
 
             case 'unscheduled':
-                const reloadAmt = parseFloat(planDetails.reloadAmount);
-                const reloadThresh = parseFloat(planDetails.reloadThreshold);
+                const reloadAmt = String(planDetails.reloadAmount);
+                const reloadThresh = String(planDetails.reloadThreshold);
                 
                 options.flow = 'vault';
                 options.requestBillingAgreement = true;
@@ -420,13 +415,13 @@
                     trial: false,
                     pricingScheme: {
                         pricingModel: 'AUTO_RELOAD',
-                        price: reloadAmt.toFixed(2),
-                        reloadThresholdAmount: reloadThresh.toFixed(2)
+                        price: reloadAmt,
+                        reloadThresholdAmount: reloadThresh
                     }
                     }],
-                    currencyIsoCode: 'USD',
+                    currencyIsoCode: planDetails.currencyIsoCode || planDetails.currency || storefrontCurrency,
                     name: planDetails.description,
-                    totalAmount: reloadAmt.toFixed(2) // First reload charged today
+                    totalAmount: reloadAmt // First reload charged today
                 };
                 break;
                 
@@ -434,7 +429,7 @@
                 const instStartDate = new Date();
                 const instFormattedStartDate = instStartDate.toISOString().split('T')[0];
                 
-                const instAmount = parseFloat(planDetails.amount);
+                const instAmount = String(planDetails.amount);
                 
                 options.planType = 'SUBSCRIPTION';
                 options.planMetadata = {
@@ -447,12 +442,12 @@
                     trial: false,
                     pricingScheme: {
                         pricingModel: 'FIXED',
-                        price: instAmount.toFixed(2)
+                        price: instAmount
                     }
                     }],
-                    currencyIsoCode: 'USD',
+                    currencyIsoCode: planDetails.currencyIsoCode || planDetails.currency || storefrontCurrency,
                     name: planDetails.description,
-                    totalAmount: '0.00' // No upfront charge
+                    totalAmount: storefrontZeroAmount // No upfront charge
                 };
                 break;
 
@@ -461,8 +456,8 @@
                 startDate.setDate(startDate.getDate());
                 const formattedStartDate = startDate.toISOString().split('T')[0];
                 
-                const setupFee = parseFloat(planDetails.setupFee);
-                const recurringAmount = parseFloat(planDetails.recurringAmount);
+                const setupFee = String(planDetails.setupFee);
+                const recurringAmount = String(planDetails.recurringAmount);
                 
                 options.planType = 'SUBSCRIPTION';
                 options.planMetadata = {
@@ -475,14 +470,14 @@
                     trial: false,
                     pricingScheme: {
                         pricingModel: 'FIXED',
-                        price: recurringAmount.toFixed(2)
+                        price: recurringAmount
                     }
                     }],
-                    currencyIsoCode: 'USD',
+                    currencyIsoCode: planDetails.currencyIsoCode || planDetails.currency || storefrontCurrency,
                     name: planDetails.description,
                     // Removed productDescription
-                    oneTimeFeeAmount: setupFee.toFixed(2),
-                    totalAmount: setupFee.toFixed(2)
+                    oneTimeFeeAmount: setupFee,
+                    totalAmount: setupFee
                 };
                 break;
         }

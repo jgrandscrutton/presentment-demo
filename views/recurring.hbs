@@ -164,7 +164,7 @@
             <div class="product-tag">FLEXIBLE</div>
             <h1>Pay As You Go</h1>
             <p>Only pay for what you use - perfect for light users, international calling, and variable data needs</p>
-            <div class="price-display">From $15<small>/month</small></div>
+            <div class="price-display">From {{prices.paygMinimum.formatted}}<small>/month</small></div>
             
             <ul class="features-list">
                 <li>No base monthly fee</li>
@@ -182,7 +182,7 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>How it works:</strong> Your first bill will be approximately $25 based on typical usage. Future bills will vary based on your actual usage each month.
+            <strong>How it works:</strong> Your first bill will be approximately {{prices.paygInitial.formatted}} based on typical usage. Future bills will vary based on your actual usage each month.
         </div>
         
         <div class="order-summary">
@@ -192,11 +192,11 @@
             </div>
             <div class="summary-row">
                 <span>Estimated First Bill</span>
-                <span>~$25.00</span>
+                <span>~{{prices.paygInitial.formatted}}</span>
             </div>
             <div class="summary-row">
                 <span>Due Today</span>
-                <span>$0.00</span>
+                <span>{{storefront.zeroFormatted}}</span>
             </div>
         </div>
 
@@ -213,10 +213,13 @@
 const billingData = {
     type: 'recurring',
     description: 'Pay As You Go Plan',
-    amount: '25.00', // Estimated initial amount
+    amount: '{{prices.paygInitial.amount}}', // Estimated initial amount
+    currency: '{{storefront.currency}}',
     frequency: 'monthly'
 };
 
-// Initialize payment flow
-initializePayment(billingData);
+// payment-flow.js loads after this view (see layouts/store.hbs).
+window.addEventListener('load', function () {
+    initializePayment(billingData);
+});
 </script>

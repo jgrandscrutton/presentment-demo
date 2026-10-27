@@ -78,6 +78,16 @@
             color: #666;
         }
 
+        .demo-rate-banner {
+            background: #fff8dd;
+            border-bottom: 1px solid #ead58a;
+            color: #5d4a00;
+            font-size: 0.86rem;
+            font-weight: 600;
+            padding: 0.65rem 2rem;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .nav-links {
                 display: none;
@@ -85,7 +95,7 @@
         }
     </style>
 </head>
-<body>
+<body data-store-currency="{{storefront.currency}}" data-store-zero-amount="{{storefront.zeroAmount}}">
     <header class="header">
         <nav class="nav-container">
             <div class="logo-container">
@@ -97,16 +107,20 @@
                 <li><a href="/#plans">Plans</a></li>
                 <li><a href="/devices">Devices</a></li>
                 <li><a href="/webhook-activity">Webhooks</a></li>
-                <li><a href="/basic">Demo</a></li>
+                <li><a href="/demo">Routing Demo</a></li>
             </ul>
         </nav>
     </header>
+
+    {{#if storefront.rateLabel}}
+    <div class="demo-rate-banner" role="note">{{storefront.rateLabel}}</div>
+    {{/if}}
 
     {{{body}}}
 
     <footer class="footer">
         <p>&copy; 2026 PhonePal - Demo Application</p>
-        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Built to showcase PayPal Recurring Billing Module</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Built to showcase Braintree merchant-account routing</p>
     </footer>
 
     <script src="https://js.braintreegateway.com/web/3.134.0/js/client.min.js"></script> 

@@ -167,8 +167,8 @@
             <h1>Auto-Reload Prepaid</h1>
             <p>Never run out of credit - your account automatically reloads when your balance gets low</p>
             <div class="price-display">
-                Auto-reload $50
-                <small>when balance drops below $10</small>
+                Auto-reload {{prices.reload.formatted}}
+                <small>when balance drops below {{prices.reloadThreshold.formatted}}</small>
             </div>
             
             <ul class="features-list">
@@ -187,7 +187,7 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>How it works:</strong> We'll charge $50 today to start your balance. When your balance drops below $10, we'll automatically reload another $50 to your account.
+            <strong>How it works:</strong> We'll charge {{prices.reload.formatted}} today to start your balance. When your balance drops below {{prices.reloadThreshold.formatted}}, we'll automatically reload another {{prices.reload.formatted}} to your account.
         </div>
         
         <div class="order-summary">
@@ -197,15 +197,15 @@
             </div>
             <div class="summary-row">
                 <span>Reload Amount</span>
-                <span>$50.00</span>
+                <span>{{prices.reload.formatted}}</span>
             </div>
             <div class="summary-row">
                 <span>Reload Threshold</span>
-                <span>$10.00</span>
+                <span>{{prices.reloadThreshold.formatted}}</span>
             </div>
             <div class="summary-row">
                 <span>Due Today (First Reload)</span>
-                <span>$50.00</span>
+                <span>{{prices.reload.formatted}}</span>
             </div>
         </div>
 
@@ -222,10 +222,13 @@
 const billingData = {
     type: 'unscheduled',
     description: 'Auto-Reload Prepaid Account',
-    reloadAmount: '50.00',
-    reloadThreshold: '10.00'
+    reloadAmount: '{{prices.reload.amount}}',
+    reloadThreshold: '{{prices.reloadThreshold.amount}}',
+    currency: '{{storefront.currency}}'
 };
 
-// Initialize payment flow
-initializePayment(billingData);
+// payment-flow.js loads after this view (see layouts/store.hbs).
+window.addEventListener('load', function () {
+    initializePayment(billingData);
+});
 </script>
