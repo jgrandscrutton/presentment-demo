@@ -167,8 +167,8 @@
             <h1>Auto-Reload Prepaid</h1>
             <p>Never run out of credit - your account automatically reloads when your balance gets low</p>
             <div class="price-display">
-                Auto-reload {{currencySymbol}}50
-                <small>when balance drops below {{currencySymbol}}10</small>
+                Auto-reload $50
+                <small>when balance drops below $10</small>
             </div>
             
             <ul class="features-list">
@@ -187,7 +187,7 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>How it works:</strong> We'll charge {{currencySymbol}}50 today to start your balance. When your balance drops below {{currencySymbol}}10, we'll automatically reload another {{currencySymbol}}50 to your account.
+            <strong>How it works:</strong> We'll charge $50 today to start your balance. When your balance drops below $10, we'll automatically reload another $50 to your account.
         </div>
         
         <div class="order-summary">
@@ -197,22 +197,21 @@
             </div>
             <div class="summary-row">
                 <span>Reload Amount</span>
-                <span>{{currencySymbol}}50.00</span>
+                <span>$50.00</span>
             </div>
             <div class="summary-row">
                 <span>Reload Threshold</span>
-                <span>{{currencySymbol}}10.00</span>
+                <span>$10.00</span>
             </div>
             <div class="summary-row">
                 <span>Due Today (First Reload)</span>
-                <span>{{currencySymbol}}50.00</span>
+                <span>$50.00</span>
             </div>
         </div>
 
         <div class="payment-info">
-            🔒 PayPal wallet checkout powered by Braintree
+            🔒 Secure payment powered by PayPal
         </div>
-        {{> billing-demo-note}}
 
         <div id="paypal-button-container"></div>
     </div>
@@ -221,15 +220,12 @@
 <script>
 // Pre-defined billing data for auto-reload prepaid
 const billingData = {
-    productId: 'auto-reload',
     type: 'unscheduled',
     description: 'Auto-Reload Prepaid Account',
     reloadAmount: '50.00',
     reloadThreshold: '10.00'
 };
 
-document.addEventListener('DOMContentLoaded', function () {
-    BraintreePayments.initializeRecurring(billingData)
-        .catch(error => console.error('Braintree checkout failed:', error));
-});
+// Initialize payment flow
+initializePayment(billingData);
 </script>

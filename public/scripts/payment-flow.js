@@ -1,327 +1,353 @@
-(function createBraintreePayments(window) {
-    'use strict';
+// public/scripts/payment-flow.js
 
-    const API = {
-        clientToken: '/api/client-token',
-        previewPlan: '/api/billing-plans/preview',
-        previewCustomPlan: '/api/demo/billing-plans/preview',
-        previewTransaction: '/api/transactions/preview',
-        transactions: '/api/transactions',
-        billingTransactions: '/api/billing-transactions',
-        customBillingTransactions: '/api/demo/billing-transactions'
-    };
+function initializePayment(billingData) {
+    // Fetch plan details from server
+    fetch('/api/create-billing-plan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(billingData)
+    })
+    .then(response => response.json())
+    .then(planData => {
+        billingData.planDetails = planData.planDetails;
+        console.log('Plan data received:', planData);
+        return setupPayPalButton(billingData);
+    })
+    .catch(err => {
+        console.error('Error creating billing plan:', err);
+    });
+}
 
-    let recurringCheckoutPromise;
-    let oneTimeCheckoutPromise;
-
-    async function requestJson(url, options) {
-        const response = await fetch(url, options);
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-            throw new Error(payload.error || `Request failed with status ${response.status}.`);
-        }
-
-        return payload;
-    }
-
-    function postJson(url, body) {
-        return requestJson(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-    }
-
-    function getContainer(containerId) {
-        const container = document.getElementById(containerId);
-
-        if (!container) {
-            throw new Error(`Payment container "${containerId}" was not found.`);
-        }
-
-        return container;
-    }
-
-    function showContainerMessage(containerId, message, isError) {
-        const container = getContainer(containerId);
-        container.replaceChildren();
-
-        const status = document.createElement('p');
-        status.textContent = message;
-        status.style.fontSize = '0.9rem';
-        status.style.color = isError ? '#b00020' : '#555';
-        container.appendChild(status);
-    }
-
-    async function createPayPalCheckout() {
-        const config = await requestJson(API.clientToken);
-        const client = await braintree.client.create({
-            authorization: config.clientToken
-        });
-        const checkout = await braintree.paypalCheckout.create({ client });
-
-        return {
-            checkout,
-            currency: config.currency
-        };
-    }
-
-    function redirectToSuccess(result) {
-        const params = new URLSearchParams({
-            txnId: result.transactionId
-        });
-
-        window.location.assign(`/success?${params.toString()}`);
-    }
-
-    function buildPaymentOptions(billingData) {
-        const plan = billingData.planDetails;
-        const options = {
-            flow: 'vault',
-            planType: 'RECURRING'
-        };
-
-        switch (billingData.type) {
-            case 'subscription':
-                options.planType = 'SUBSCRIPTION';
-                options.planMetadata = {
-                    billingCycles: [{
-                        billingFrequency: '1',
-                        billingFrequencyUnit: plan.frequency,
-                        numberOfExecutions: '0',
-                        sequence: '1',
-                        startDate: plan.firstBillingDate,
-                        trial: false,
-                        pricingScheme: {
-                            pricingModel: 'FIXED',
-                            price: plan.amount
-                        }
-                    }],
-                    currencyIsoCode: plan.currencyIsoCode,
-                    name: plan.description,
-                    totalAmount: plan.amount
-                };
-                break;
-            case 'recurring':
-                options.planMetadata = {
-                    billingCycles: [{
-                        billingFrequency: '1',
-                        billingFrequencyUnit: plan.frequency,
-                        numberOfExecutions: '0',
-                        sequence: '1',
-                        startDate: plan.firstBillingDate,
-                        trial: false,
-                        pricingScheme: {
-                            pricingModel: 'VARIABLE',
-                            price: plan.amount
-                        }
-                    }],
-                    currencyIsoCode: plan.currencyIsoCode,
-                    name: plan.description,
-                    totalAmount: plan.amount
-                };
-                break;
-            case 'unscheduled':
-                options.requestBillingAgreement = true;
-                options.planType = 'UNSCHEDULED';
-                options.planMetadata = {
-                    billingCycles: [{
-                        sequence: '1',
-                        trial: false,
-                        pricingScheme: {
-                            pricingModel: 'AUTO_RELOAD',
-                            price: plan.reloadAmount,
-                            reloadThresholdAmount: plan.reloadThreshold
-                        }
-                    }],
-                    currencyIsoCode: plan.currencyIsoCode,
-                    name: plan.description,
-                    totalAmount: plan.reloadAmount
-                };
-                break;
-            case 'installments':
-                options.planType = 'INSTALLMENTS';
-                options.planMetadata = {
-                    billingCycles: [{
-                        billingFrequency: '1',
-                        billingFrequencyUnit: plan.frequency,
-                        numberOfExecutions: String(plan.totalCycles - 1),
-                        sequence: '1',
-                        startDate: plan.firstBillingDate,
-                        trial: false,
-                        pricingScheme: {
-                            pricingModel: 'FIXED',
-                            price: plan.amount
-                        }
-                    }],
-                    currencyIsoCode: plan.currencyIsoCode,
-                    name: plan.description,
-                    totalAmount: plan.amount
-                };
-                break;
-            case 'hybrid':
-                options.planType = 'SUBSCRIPTION';
-                options.planMetadata = {
-                    billingCycles: [{
-                        billingFrequency: '1',
-                        billingFrequencyUnit: plan.frequency,
-                        numberOfExecutions: '0',
-                        sequence: '1',
-                        startDate: plan.firstBillingDate,
-                        trial: false,
-                        pricingScheme: {
-                            pricingModel: 'FIXED',
-                            price: plan.recurringAmount
-                        }
-                    }],
-                    currencyIsoCode: plan.currencyIsoCode,
-                    name: plan.description,
-                    oneTimeFeeAmount: plan.setupFee,
-                    totalAmount: plan.setupFee
-                };
-                break;
-            default:
-                throw new Error('Unsupported billing type.');
-        }
-
-        return options;
-    }
-
-    async function getRecurringCheckout() {
-        if (!recurringCheckoutPromise) {
-            recurringCheckoutPromise = createPayPalCheckout()
-                .then(async ({ checkout, currency }) => {
-                    await checkout.loadPayPalSDK({ vault: true, currency });
-                    return { checkout, currency };
-                })
-                .catch(error => {
-                    recurringCheckoutPromise = undefined;
-                    throw error;
-                });
-        }
-
-        return recurringCheckoutPromise;
-    }
-
-    async function initializeRecurring(billingData) {
-        const containerId = billingData.containerId || 'paypal-button-container';
-        showContainerMessage(containerId, 'Loading secure Braintree checkout…', false);
-
-        try {
-            const isCustomDemo = billingData.custom === true;
-            const previewUrl = isCustomDemo ? API.previewCustomPlan : API.previewPlan;
-            const transactionUrl = isCustomDemo ? API.customBillingTransactions : API.billingTransactions;
-            const preview = await postJson(previewUrl, billingData);
-            const approvedPlan = {
-                type: preview.planType,
-                planDetails: preview.planDetails
-            };
-
-            const { checkout, currency } = await getRecurringCheckout();
-            if (currency !== approvedPlan.planDetails.currencyIsoCode) {
-                throw new Error('The Braintree client-token currency does not match the billing plan currency.');
-            }
-
-            getContainer(containerId).replaceChildren();
+function setupPayPalButton(billingData) {
+    fetch('/api/client-token')
+        .then(response => response.text())
+        .then(clientToken => {
+            return braintree.client.create({
+                authorization: clientToken
+            });
+        })
+        .then(clientInstance => {
+            return braintree.paypalCheckout.create({
+                client: clientInstance
+            });
+        })
+        .then(paypalCheckoutInstance => {
+            return paypalCheckoutInstance.loadPayPalSDK({
+                vault: true,
+                intent: 'tokenize'
+            }).then(() => paypalCheckoutInstance);
+        })
+        .then(paypalCheckoutInstance => {
             return paypal.Buttons({
                 fundingSource: paypal.FUNDING.PAYPAL,
-                createBillingAgreement() {
-                    return checkout.createPayment(buildPaymentOptions(approvedPlan));
+                
+                createBillingAgreement: function() {
+                    const paymentOptions = buildPaymentOptions(billingData);
+                    console.log('=== FULL PAYMENT OPTIONS ===');
+                    console.log(JSON.stringify(paymentOptions, null, 2));
+                    console.log('=========================');
+                    
+                    return paypalCheckoutInstance.createPayment(paymentOptions);
                 },
-                async onApprove(data) {
-                    const payload = await checkout.tokenizePayment(data);
-                    const result = await postJson(transactionUrl, {
-                        nonce: payload.nonce,
-                        quoteToken: preview.quoteToken,
-                        paypalEmail: payload.details?.email
-                    });
-                    redirectToSuccess(result);
+                
+                onApprove: function(data, actions) {
+                    return paypalCheckoutInstance.tokenizePayment(data)
+                        .then(payload => {
+                            return fetch('/api/create-subscription', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    nonce: payload.nonce,
+                                    billingData: billingData,
+                                    paypalEmail: payload.details.email
+                                })
+                            });
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                const params = new URLSearchParams({
+                                    txnId: result.transactionId,
+                                    product: billingData.description,
+                                    amount: result.amount,
+                                    email: result.paypalEmail || 'N/A'
+                                });
+                                
+                                // Add recurring amount if applicable
+                                if (billingData.planDetails.amount && billingData.type !== 'unscheduled') {
+                                    params.append('recurring', billingData.planDetails.amount);
+                                    params.append('freq', billingData.frequency);
+                                    
+                                    // Flag if it's variable billing
+                                    if (billingData.type === 'recurring') {
+                                        params.append('variable', 'true');
+                                    }
+                                }
+                                
+                                window.location.href = `/success?${params.toString()}`;
+                            }
+                        });
                 },
-                onError(error) {
-                    showContainerMessage(containerId, error.message || 'Braintree checkout failed.', true);
+                
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('An error occurred. Check console for details.');
                 }
-            }).render(`#${containerId}`);
-        } catch (error) {
-            showContainerMessage(containerId, error.message || 'Braintree checkout failed to load.', true);
-            throw error;
-        }
+            }).render('#paypal-button-container');
+        })
+        .catch(err => {
+            console.error('Error setting up PayPal:', err);
+        });
+}
+
+function buildPaymentOptions(billingData) {
+    console.log('Building payment options with billingData:', billingData);
+    console.log('planDetails:', billingData.planDetails);
+    
+    const planDetails = billingData.planDetails;
+    
+    if (!planDetails) {
+        console.error('No planDetails found!');
+        return {
+        flow: 'vault',
+        billingAgreementDescription: billingData.description
+        };
     }
+    
+    // Base options - NOTE: flow is 'vault' not 'checkout'
+    const options = {
+        flow: 'vault',
+        planType: 'RECURRING' // Changed from 'SUBSCRIPTION'
+    };
+    
+    switch(billingData.type) {
+        case 'subscription':
+            // Fixed amount, fixed schedule, ongoing - no setup fee
+            const subStartDate = new Date();
+            const subFormattedStartDate = subStartDate.toISOString().split('T')[0];
+            
+            options.planType = 'SUBSCRIPTION';
+            options.planMetadata = {
+                billingCycles: [{
+                billingFrequency: '1',
+                billingFrequencyUnit: planDetails.frequency,
+                numberOfExecutions: '0',
+                sequence: '1',
+                startDate: subFormattedStartDate,
+                trial: false,
+                pricingScheme: {
+                    pricingModel: 'FIXED',
+                    price: planDetails.amount
+                }
+                }],
+                currencyIsoCode: 'USD',
+                name: planDetails.description,
+                totalAmount: '0.00' // No upfront charges, billing starts on startDate
+            };
+            break;
 
-    async function getOneTimeCheckout() {
-        if (!oneTimeCheckoutPromise) {
-            oneTimeCheckoutPromise = createPayPalCheckout()
-                .then(async ({ checkout, currency }) => {
-                    await checkout.loadPayPalSDK({ currency, intent: 'capture' });
-                    return { checkout, currency };
-                })
-                .catch(error => {
-                    oneTimeCheckoutPromise = undefined;
-                    throw error;
-                });
-        }
+        case 'recurring':
+            // Variable amount, fixed schedule - use initial amount
+            const recStartDate = new Date();
+            const recFormattedStartDate = recStartDate.toISOString().split('T')[0];
+            
+            console.log('Recurring planDetails:', planDetails);
+            console.log('planDetails.amount:', planDetails.amount, 'type:', typeof planDetails.amount);
+            
+            const initialAmount = parseFloat(planDetails.amount);
+            console.log('initialAmount parsed:', initialAmount);
+            console.log('initialAmount.toFixed(2):', initialAmount.toFixed(2));
+            
+            options.planType = 'RECURRING';
+            options.planMetadata = {
+                billingCycles: [{
+                billingFrequency: '1',
+                billingFrequencyUnit: planDetails.frequency,
+                numberOfExecutions: '0',
+                sequence: '1',
+                startDate: recFormattedStartDate,
+                trial: false,
+                pricingScheme: {
+                    pricingModel: 'VARIABLE',
+                    price: initialAmount.toFixed(2)
+                }
+                }],
+                currencyIsoCode: 'USD',
+                name: planDetails.description,
+                totalAmount: '0.00'
+            };
+            break;
 
-        return oneTimeCheckoutPromise;
+        case 'unscheduled':
+            const reloadAmt = parseFloat(planDetails.reloadAmount);
+            const reloadThresh = parseFloat(planDetails.reloadThreshold);
+            
+            options.flow = 'vault';
+            options.requestBillingAgreement = true;
+            options.planType = 'UNSCHEDULED';
+            
+            options.planMetadata = {
+                billingCycles: [{
+                sequence: 1,
+                trial: false,
+                pricingScheme: {
+                    pricingModel: 'AUTO_RELOAD',
+                    price: reloadAmt.toFixed(2),
+                    reloadThresholdAmount: reloadThresh.toFixed(2)
+                }
+                }],
+                currencyIsoCode: 'USD',
+                name: planDetails.description,
+                totalAmount: reloadAmt.toFixed(2) // First reload charged today
+            };
+            break;
+            
+        case 'installments':
+            const instStartDate = new Date();
+            const instFormattedStartDate = instStartDate.toISOString().split('T')[0];
+            
+            const instAmount = parseFloat(planDetails.amount);
+            
+            options.planType = 'SUBSCRIPTION';
+            options.planMetadata = {
+                billingCycles: [{
+                billingFrequency: '1',
+                billingFrequencyUnit: planDetails.frequency,
+                numberOfExecutions: planDetails.totalCycles.toString(),
+                sequence: '1',
+                startDate: instFormattedStartDate,
+                trial: false,
+                pricingScheme: {
+                    pricingModel: 'FIXED',
+                    price: instAmount.toFixed(2)
+                }
+                }],
+                currencyIsoCode: 'USD',
+                name: planDetails.description,
+                totalAmount: '0.00' // No upfront charge
+            };
+            break;
+
+        case 'hybrid':
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate());
+            const formattedStartDate = startDate.toISOString().split('T')[0];
+            
+            const setupFee = parseFloat(planDetails.setupFee);
+            const recurringAmount = parseFloat(planDetails.recurringAmount);
+            
+            options.planType = 'SUBSCRIPTION';
+            options.planMetadata = {
+                billingCycles: [{
+                billingFrequency: '1',
+                billingFrequencyUnit: planDetails.frequency,
+                numberOfExecutions: '0',
+                sequence: '1',
+                startDate: formattedStartDate,
+                trial: false,
+                pricingScheme: {
+                    pricingModel: 'FIXED',
+                    price: recurringAmount.toFixed(2)
+                }
+                }],
+                currencyIsoCode: 'USD',
+                name: planDetails.description,
+                // Removed productDescription
+                oneTimeFeeAmount: setupFee.toFixed(2),
+                totalAmount: setupFee.toFixed(2)
+            };
+            break;
     }
+    
+    console.log('Final payment options with planMetadata:', options);
+    return options;
+}
 
-    async function initializeOneTime(billingData) {
-        const containerId = billingData.containerId || 'paypal-button-container';
-        showContainerMessage(containerId, 'Loading secure Braintree checkout…', false);
+// One-time payment function for PayPal Checkout
+// Braintree client + PayPal Checkout instance are created once and shared by every button on the page
+let oneTimeCheckoutPromise = null;
 
-        try {
-            const { checkout, currency } = await getOneTimeCheckout();
-            let quotedPurchase;
-            getContainer(containerId).replaceChildren();
+function getOneTimeCheckout() {
+    if (!oneTimeCheckoutPromise) {
+        oneTimeCheckoutPromise = fetch('/api/client-token')
+            .then(response => response.text())
+            .then(clientToken => braintree.client.create({ authorization: clientToken }))
+            .then(clientInstance => braintree.paypalCheckout.create({ client: clientInstance }))
+            .then(paypalCheckoutInstance =>
+                paypalCheckoutInstance.loadPayPalSDK({
+                    currency: 'GBP',
+                    intent: 'capture'
+                }).then(() => paypalCheckoutInstance)
+            );
+    }
+    return oneTimeCheckoutPromise;
+}
 
+// billingData: { description, amount, containerId }
+function oneTimePayment(billingData) {
+    console.log('oneTimePayment called', billingData);
+    return getOneTimeCheckout()
+        .then(paypalCheckoutInstance => {
             return paypal.Buttons({
                 fundingSource: paypal.FUNDING.PAYPAL,
-                async createOrder() {
-                    const selection = {
-                        productId: billingData.productId,
-                        storage: billingData.storage,
-                        colour: billingData.colour
-                    };
-                    const quote = await postJson(API.previewTransaction, selection);
-                    if (quote.currency !== currency) {
-                        throw new Error('The Braintree client-token currency does not match the purchase currency.');
-                    }
-                    quotedPurchase = { ...selection, ...quote };
-                    billingData.amount = quote.amount;
-                    billingData.description = quote.description;
 
-                    return checkout.createPayment({
+                createOrder: function() {
+                    return paypalCheckoutInstance.createPayment({
                         flow: 'checkout',
                         intent: 'capture',
-                        amount: Number(billingData.amount).toFixed(2),
-                        currency,
+                        amount: parseFloat(billingData.amount).toFixed(2),
+                        currency: 'GBP',
                         enableShippingAddress: false
                     });
                 },
-                async onApprove(data) {
-                    if (!quotedPurchase) {
-                        throw new Error('The Braintree purchase quote is missing.');
-                    }
 
-                    const payload = await checkout.tokenizePayment(data);
-                    const result = await postJson(API.transactions, {
-                        nonce: payload.nonce,
-                        quoteToken: quotedPurchase.quoteToken,
-                        paypalEmail: payload.details?.email
-                    });
-                    redirectToSuccess(result);
+                onApprove: function(data) {
+                    return paypalCheckoutInstance.tokenizePayment(data)
+                        .then(payload => {
+                            return fetch('/api/create-transaction', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    nonce: payload.nonce,
+                                    amount: billingData.amount,
+                                    description: billingData.description,
+                                    paypalEmail: payload.details.email
+                                })
+                            });
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                const params = new URLSearchParams({
+                                    txnId: result.transactionId,
+                                    product: billingData.description,
+                                    amount: result.amount,
+                                    email: result.paypalEmail || 'N/A'
+                                });
+                                window.location.href = `/success?${params.toString()}`;
+                            } else {
+                                console.error('Transaction failed:', result.error);
+                                alert('Payment failed: ' + result.error);
+                            }
+                        });
                 },
-                onError(error) {
-                    showContainerMessage(containerId, error.message || 'Braintree checkout failed.', true);
-                }
-            }).render(`#${containerId}`);
-        } catch (error) {
-            showContainerMessage(containerId, error.message || 'Braintree checkout failed to load.', true);
-            throw error;
-        }
-    }
 
-    window.BraintreePayments = {
-        initializeRecurring,
-        initializeOneTime
-    };
-}(window));
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('An error occurred. Check console for details.');
+                }
+            }).render('#' + billingData.containerId);
+        })
+        .catch(err => {
+            console.error('Error setting up one-time PayPal button:', err);
+            const el = document.getElementById(billingData.containerId);
+            if (el) {
+                el.innerHTML = '<p style="color:#b00020;font-size:0.85rem">PayPal button failed to load: ' +
+                    (err && err.message ? err.message : err) + '</p>';
+            }
+        });
+}

@@ -163,12 +163,12 @@
         <div class="product-details">
             <div class="product-tag">NEW DEVICE</div>
             <h1>iPhone 15</h1>
-            <p>Get the latest iPhone with a fixed 24-month payment schedule</p>
-            <div class="price-display">{{currencySymbol}}41.62<small>/month</small></div>
+            <p>Get the latest iPhone with fast, secure checkout using PayPal</p>
+            <div class="price-display">£999.00<small> one-time</small></div>
             
             <ul class="features-list">
                 <li>iPhone 15 128GB</li>
-                <li>24 fixed monthly installments</li>
+                <li>One-time payment</li>
                 <li>Free next-day delivery</li>
                 <li>30-day returns</li>
             </ul>
@@ -181,41 +181,39 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>Installment plan:</strong> The first {{currencySymbol}}41.62 payment is charged today, with 23 payments remaining.
+            <strong>One-time payment:</strong> You will be charged £999.00 today.
         </div>
         
         <div class="order-summary">
             <div class="summary-row">
                 <span>iPhone 15 (128GB)</span>
-                <span>{{currencySymbol}}41.62 × 24</span>
+                <span>£999.00</span>
             </div>
             <div class="summary-row">
                 <span>Due Today</span>
-                <span>{{currencySymbol}}41.62</span>
+                <span>£999.00</span>
             </div>
         </div>
 
         <div class="payment-info">
-            🔒 PayPal wallet checkout powered by Braintree
+            🔒 Secure payment powered by PayPal
         </div>
-        {{> billing-demo-note}}
 
         <div id="paypal-button-container"></div>
     </div>
 </section>
 
 <script>
+// One-time purchase of the iPhone 15.
+// payment-flow.js loads after this view (see layouts/store.hbs), so wait for the window load event.
 const billingData = {
-    productId: 'iphone-15-installments',
-    type: 'installments',
-    description: 'iPhone 15 (24 monthly installments)',
-    amount: '41.62',
-    frequency: 'monthly',
-    installments: 24
+    type: 'one-time',
+    description: 'iPhone 15 (128GB)',
+    amount: '999.00',
+    containerId: 'paypal-button-container'
 };
 
-document.addEventListener('DOMContentLoaded', function () {
-    BraintreePayments.initializeRecurring(billingData)
-        .catch(error => console.error('Braintree checkout failed:', error));
+window.addEventListener('load', function () {
+    oneTimePayment(billingData);
 });
 </script>

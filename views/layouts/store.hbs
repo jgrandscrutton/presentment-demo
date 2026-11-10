@@ -84,11 +84,6 @@
             }
         }
     </style>
-    {{#if paymentPage}}
-    <script defer src="https://js.braintreegateway.com/web/3.147.0/js/client.min.js"></script>
-    <script defer src="https://js.braintreegateway.com/web/3.147.0/js/paypal-checkout.min.js"></script>
-    <script defer src="/scripts/payment-flow.js"></script>
-    {{/if}}
 </head>
 <body>
     <header class="header">
@@ -111,8 +106,11 @@
 
     <footer class="footer">
         <p>&copy; 2026 PhonePal - Demo Application</p>
-        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Payments and wallet checkout powered by Braintree</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Built to showcase PayPal Recurring Billing Module</p>
     </footer>
 
+    <script src="https://js.braintreegateway.com/web/3.134.0/js/client.min.js"></script> 
+    <script src="https://js.braintreegateway.com/web/3.134.0/js/paypal-checkout.min.js"></script>
+    <script src="/scripts/payment-flow.js"></script>
 </body>
 </html>

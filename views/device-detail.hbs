@@ -74,7 +74,7 @@
             <p class="dd-tagline">{{device.tagline}}</p>
 
             <div class="dd-price-block">
-                <div class="dd-price">{{currencySymbol}}<span id="price-upfront">{{device.upfrontPrice}}</span></div>
+                <div class="dd-price">£<span id="price-upfront">{{device.upfrontPrice}}</span></div>
                 <div class="dd-price-sub">One-time payment</div>
             </div>
 
@@ -114,11 +114,10 @@
 </section>
 
 <script>
-// Shared with Braintree checkout: createOrder/onApprove read these values at click time,
+// Shared with the PayPal button: createOrder/onApprove read these values at click time,
 // so changing colour/storage below updates what gets charged.
 const billingData = {
     type: 'one-time',
-    productId: '{{device.id}}',
     deviceName: '{{device.brand}} {{device.name}}',
     colour: document.querySelector('.colour-pill.active') ? document.querySelector('.colour-pill.active').dataset.colour : '',
     storage: '{{device.storage.0.size}}',
@@ -151,8 +150,8 @@ document.querySelectorAll('.storage-pill').forEach(function (btn) {
     });
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-    BraintreePayments.initializeOneTime(billingData)
-        .catch(error => console.error('Braintree checkout failed:', error));
+// payment-flow.js loads after this view (see layouts/store.hbs), so wait for load.
+window.addEventListener('load', function () {
+    oneTimePayment(billingData);
 });
 </script>

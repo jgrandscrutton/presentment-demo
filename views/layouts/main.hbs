@@ -3,10 +3,12 @@
   <head>
     <title>{{title}}</title>
     <link rel='stylesheet' href='/stylesheets/style.css' />
-    <script defer src="https://js.braintreegateway.com/web/3.147.0/js/client.min.js"></script>
-    <script defer src="https://js.braintreegateway.com/web/3.147.0/js/paypal-checkout.min.js"></script>
-    <script defer src="/scripts/payment-flow.js"></script>
-    <script defer src="/scripts/basic-demo.js"></script>
+    <!-- Load the client component. --> 
+    <script src="https://js.braintreegateway.com/web/3.134.0/js/client.min.js"></script> 
+    <!-- Load the PayPal Checkout component. --> 
+    <script src="https://js.braintreegateway.com/web/3.134.0/js/paypal-checkout.min.js"></script>
+    <!-- includes jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
   </head>
   <body>
     {{{body}}}

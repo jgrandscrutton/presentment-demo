@@ -156,7 +156,7 @@
             <div class="product-tag">MOST POPULAR</div>
             <h1>Unlimited Data Plan</h1>
             <p>SIM-only monthly plan with unlimited data, calls, and texts across the UK and EU</p>
-            <div class="price-display">{{currencySymbol}}35<small>/month</small></div>
+            <div class="price-display">$35<small>/month</small></div>
             
             <ul class="features-list">
                 <li>Unlimited 5G data</li>
@@ -176,22 +176,21 @@
         <div class="order-summary">
             <div class="summary-row">
                 <span>Unlimited Data Plan</span>
-                <span>{{currencySymbol}}35.00/month</span>
+                <span>$35.00/month</span>
             </div>
             <div class="summary-row">
                 <span>Due Today</span>
-                <span>{{currencySymbol}}35.00</span>
+                <span>$0.00</span>
             </div>
             <div class="summary-row">
                 <span>Recurring Monthly</span>
-                <span>{{currencySymbol}}35.00</span>
+                <span>$35.00</span>
             </div>
         </div>
 
         <div class="payment-info">
-            🔒 PayPal wallet checkout powered by Braintree
+            🔒 Secure payment powered by PayPal
         </div>
-        {{> billing-demo-note}}
 
         <div id="paypal-button-container"></div>
     </div>
@@ -200,15 +199,12 @@
 <script>
 // Pre-defined billing data for this product
 const billingData = {
-    productId: 'unlimited-data',
     type: 'subscription',
     description: 'Unlimited Data Plan',
     amount: '35.00',
     frequency: 'monthly'
 };
 
-document.addEventListener('DOMContentLoaded', function () {
-    BraintreePayments.initializeRecurring(billingData)
-        .catch(error => console.error('Braintree checkout failed:', error));
-});
+// Initialize payment flow
+initializePayment(billingData);
 </script>
