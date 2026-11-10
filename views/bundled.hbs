@@ -175,11 +175,11 @@
             <div class="product-tag">BEST VALUE</div>
             <h1>iPhone 15 + Unlimited Plan</h1>
             <p>Get the latest iPhone and unlimited data plan together - activation fee applies</p>
-            <div class="price-display">$199 today<br><small>+ $60/month</small></div>
+            <div class="price-display">{{currencySymbol}}199 today<br><small>+ {{currencySymbol}}60/month</small></div>
             
             <div class="price-breakdown">
-                <div><strong>Today:</strong> $199 activation fee</div>
-                <div><strong>Monthly:</strong> $60 (phone payment + unlimited plan)</div>
+                <div><strong>Today:</strong> {{currencySymbol}}199 activation fee</div>
+                <div><strong>Monthly:</strong> {{currencySymbol}}60 (phone payment + unlimited plan)</div>
             </div>
             
             <ul class="features-list">
@@ -198,27 +198,28 @@
         <h2>Complete Your Order</h2>
         
         <div class="info-box">
-            <strong>Bundle Details:</strong> Pay $199 activation fee today, then $60/month ongoing (includes device payment and unlimited plan).
+            <strong>Bundle Details:</strong> Pay {{currencySymbol}}199 activation fee today, then {{currencySymbol}}60/month ongoing (includes device payment and unlimited plan).
         </div>
         
         <div class="order-summary">
             <div class="summary-row">
                 <span>Activation Fee</span>
-                <span>$199.00</span>
+                <span>{{currencySymbol}}199.00</span>
             </div>
             <div class="summary-row">
                 <span>Monthly (Phone + Plan)</span>
-                <span>$60.00/month</span>
+                <span>{{currencySymbol}}60.00/month</span>
             </div>
             <div class="summary-row">
                 <span>Due Today</span>
-                <span>$199.00</span>
+                <span>{{currencySymbol}}199.00</span>
             </div>
         </div>
 
         <div class="payment-info">
-            🔒 Secure payment powered by PayPal
+            🔒 PayPal wallet checkout powered by Braintree
         </div>
+        {{> billing-demo-note}}
 
         <div id="paypal-button-container"></div>
     </div>
@@ -227,6 +228,7 @@
 <script>
 // Pre-defined billing data for bundle
 const billingData = {
+    productId: 'phone-plan-bundle',
     type: 'hybrid',
     description: 'iPhone 15 + Unlimited Plan Bundle',
     oneTimeAmount: '199.00',
@@ -234,6 +236,8 @@ const billingData = {
     frequency: 'monthly'
 };
 
-// Initialize payment flow
-initializePayment(billingData);
+document.addEventListener('DOMContentLoaded', function () {
+    BraintreePayments.initializeRecurring(billingData)
+        .catch(error => console.error('Braintree checkout failed:', error));
+});
 </script>

@@ -136,11 +136,11 @@
 <section class="activity-section">
     <div class="activity-header">
         <h1>Webhook Activity Monitor</h1>
-        <p>Real-time webhook events from PayPal/Braintree</p>
+        <p>Verified webhook events received from Braintree</p>
     </div>
 
     <div style="text-align: center;">
-        <button class="refresh-btn" onclick="loadWebhookEvents()">🔄 Refresh Events</button>
+        <button class="refresh-btn" id="refresh-events" type="button">🔄 Refresh Events</button>
     </div>
 
     <div class="event-count" id="event-count">
@@ -152,70 +152,4 @@
     </div>
 </section>
 
-<script>
-function loadWebhookEvents() {
-    document.getElementById('events-container').innerHTML = '<div class="loading">Loading...</div>';
-    
-    fetch('/api/webhooks/activity')
-        .then(response => response.json())
-        .then(data => {
-            displayEvents(data.events, data.count);
-        })
-        .catch(err => {
-            console.error('Error loading events:', err);
-            document.getElementById('events-container').innerHTML = 
-                '<div class="no-events">Error loading events. Check console.</div>';
-        });
-}
-
-function displayEvents(events, count) {
-    const countDiv = document.getElementById('event-count');
-    countDiv.textContent = `${count} webhook event${count !== 1 ? 's' : ''} received`;
-    
-    const container = document.getElementById('events-container');
-    
-    if (events.length === 0) {
-        container.innerHTML = '<div class="no-events">No webhook events received yet. Cancel a billing agreement in PayPal to see events appear here.</div>';
-        return;
-    }
-    
-    container.innerHTML = events.map(event => {
-        const badge = getEventBadge(event.type);
-        
-        return `
-            <div class="event-card">
-                <div class="event-header">
-                    <div>
-                        <span class="event-type">${event.type}</span>
-                        <span class="event-badge ${badge.class}">${badge.text}</span>
-                    </div>
-                    <div class="event-time">${event.receivedAt}</div>
-                </div>
-                <div class="event-data">${JSON.stringify(event.data, null, 2)}</div>
-            </div>
-        `;
-    }).join('');
-}
-
-function getEventBadge(type) {
-    const lowerType = type.toLowerCase();
-    
-    if (lowerType.includes('cancel')) {
-        return { class: 'badge-cancelled', text: 'CANCELLED' };
-    }
-    if (lowerType.includes('create')) {
-        return { class: 'badge-created', text: 'CREATED' };
-    }
-    if (lowerType.includes('update')) {
-        return { class: 'badge-updated', text: 'UPDATED' };
-    }
-    
-    return { class: 'badge-updated', text: 'EVENT' };
-}
-
-// Load events on page load
-loadWebhookEvents();
-
-// Auto-refresh every 10 seconds
-setInterval(loadWebhookEvents, 10000);
-</script>
+<script defer src="/scripts/webhook-activity.js"></script>

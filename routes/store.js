@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const devices = require('../data/devices');
+const transactionStore = require('../services/transaction-store');
 
 router.get('/', (req, res, next) => {
     res.render('index', { title: 'Recurring Billing' });
@@ -8,44 +9,49 @@ router.get('/', (req, res, next) => {
 
 router.get('/subscription', (req, res, next) => {
     res.render('subscription', { 
-        title: 'Unlimited Data Plan'
+        title: 'Unlimited Data Plan',
+        paymentPage: true
     });
 });
 
 router.get('/recurring', (req, res, next) => {
     res.render('recurring', { 
-        title: 'Pay As You Go Plan'
+        title: 'Pay As You Go Plan',
+        paymentPage: true
     });
 });
 
 router.get('/installments', (req, res, next) => {
     res.render('installments', { 
-        title: 'iPhone 15'
+        title: 'iPhone 15',
+        paymentPage: true
     });
 });
 
 router.get('/bundled', (req, res, next) => {
     res.render('bundled', { 
-        title: 'Phone + Plan Bundle'
+        title: 'Phone + Plan Bundle',
+        paymentPage: true
     });
 });
 
 router.get('/unscheduled', (req, res, next) => {
     res.render('unscheduled', { 
-        title: 'Auto-Reload Prepaid'
+        title: 'Auto-Reload Prepaid',
+        paymentPage: true
     });
 });
 
 router.get('/success', (req, res, next) => {
+    const transaction = transactionStore.get(req.query.txnId);
+    if (!transaction) {
+        return res.status(404).send('Verified Braintree transaction not found.');
+    }
+
     res.render('success', { 
         title: 'Payment Successful',
-        transactionId: req.query.txnId || 'N/A',
-        productName: req.query.product || 'N/A',
-        amount: req.query.amount || '0.00',
-        recurringAmount: req.query.recurring || null,
-        frequency: req.query.freq || 'month',
-        paypalEmail: req.query.email || 'N/A',
-        isVariable: req.query.variable === 'true' // Add this flag
+        productName: transaction.description,
+        ...transaction
     });
 });
 
@@ -73,7 +79,8 @@ router.get('/devices/:id', (req, res) => {
     res.render('device-detail', {
         title: `${device.brand} ${device.name}`,
         device: { ...device, upfrontPrice: device.storage[0].upfrontPrice },
-        fullSpecsArray: Object.entries(device.fullSpecs).map(([label, value]) => ({ label, value }))
+        fullSpecsArray: Object.entries(device.fullSpecs).map(([label, value]) => ({ label, value })),
+        paymentPage: true
     });
 });
 
