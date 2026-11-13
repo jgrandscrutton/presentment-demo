@@ -4,7 +4,7 @@ const devices = require('../data/devices');
 const transactionStore = require('../services/transaction-store');
 
 router.get('/', (req, res, next) => {
-    res.render('index', { title: 'Recurring Billing' });
+    res.render('index', { title: 'Phones, Plans & Smarter Payments' });
 });
 
 router.get('/subscription', (req, res, next) => {
@@ -76,10 +76,20 @@ router.get('/devices/:id', (req, res) => {
     const device = devices.find(d => d.id === req.params.id);
     if (!device) return res.status(404).send('Device not found');
 
+    const related = devices
+        .filter(candidate => candidate.category === device.category && candidate.id !== device.id)
+        .slice(0, 3)
+        .map(candidate => ({
+            ...candidate,
+            monthlyPrice: candidate.storage[0].monthlyPrice,
+            upfrontPrice: candidate.storage[0].upfrontPrice
+        }));
+
     res.render('device-detail', {
         title: `${device.brand} ${device.name}`,
         device: { ...device, upfrontPrice: device.storage[0].upfrontPrice },
         fullSpecsArray: Object.entries(device.fullSpecs).map(([label, value]) => ({ label, value })),
+        related,
         paymentPage: true
     });
 });

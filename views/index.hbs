@@ -1,201 +1,197 @@
+{{!-- Promo strip --}}
+<div class="promo-strip">
+  🎉 Flexible mobile billing with secure PayPal wallet checkout — <a href="#plans" style="text-decoration:underline">See plans</a>
+</div>
 
-<!-- ============================================== -->
-<!-- views/index.hbs -->
-<!-- ============================================== -->
-
-<style>
-    .hero {
-        background: linear-gradient(135deg, #0070ba 0%, #003087 100%);
-        color: white;
-        padding: 6rem 2rem;
-        text-align: center;
-    }
-
-    .hero h1 {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        font-weight: 700;
-    }
-
-    .hero p {
-        font-size: 1.3rem;
-        margin-bottom: 2rem;
-        opacity: 0.95;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .products-section {
-        max-width: 1200px;
-        margin: 4rem auto;
-        padding: 0 2rem;
-    }
-
-    .section-title {
-        text-align: center;
-        font-size: 2.5rem;
-        margin-bottom: 3rem;
-        color: #003087;
-    }
-
-    .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
-        margin-bottom: 4rem;
-    }
-
-    .product-card {
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-        transition: all 0.3s;
-        background: white;
-    }
-
-    .product-card:hover {
-        border-color: #0070ba;
-        box-shadow: 0 8px 24px rgba(0,112,186,0.15);
-        transform: translateY(-5px);
-    }
-
-    .product-icon {
-        width: 100%;
-        height: 180px;
-        background: linear-gradient(135deg, #f0f7ff 0%, #e6f2ff 100%);
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 4rem;
-    }
-
-    .product-card h3 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-        color: #003087;
-    }
-
-    .product-card p {
-        color: #666;
-        margin-bottom: 0.5rem;
-        min-height: 3rem;
-    }
-
-    .product-price {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #0070ba;
-        margin: 1.5rem 0;
-    }
-
-    .product-tag {
-        display: inline-block;
-        background: #0070ba;
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        margin-bottom: 1rem;
-        font-weight: 600;
-    }
-
-    .cta-button {
-        background: #0070ba;
-        color: white;
-        border: none;
-        padding: 1rem 2rem;
-        font-size: 1.1rem;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s;
-        text-decoration: none;
-        display: inline-block;
-        margin-top: 1rem;
-    }
-
-    .cta-button:hover {
-        background: #005ea6;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,112,186,0.3);
-    }
-
-    @media (max-width: 768px) {
-        .hero h1 {
-            font-size: 2rem;
-        }
-
-        .hero p {
-            font-size: 1.1rem;
-        }
-
-        .products-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-
+{{!-- Hero --}}
 <section class="hero">
-    <h1>Mobile Plans That Work For You</h1>
-    <p>Flexible billing options designed for how you actually use your phone</p>
-</section>
-
-<section class="products-section" id="plans">
-    <h2 class="section-title">Choose Your Plan</h2>
-    
-    <div class="products-grid">
-        <!-- Subscription -->
-        <div class="product-card">
-            <div class="product-tag">MOST POPULAR</div>
-            <div class="product-icon">📱</div>
-            <h3>Unlimited Data Plan</h3>
-            <p>SIM-only monthly plan with unlimited data, calls, and texts</p>
-            <div class="product-price">{{currencySymbol}}35/month</div>
-            <a href="/subscription" class="cta-button">Get Started</a>
-        </div>
-
-        <!-- Recurring -->
-        <div class="product-card">
-            <div class="product-tag">FLEXIBLE</div>
-            <div class="product-icon">📊</div>
-            <h3>Pay As You Go</h3>
-            <p>Only pay for what you use - perfect for international calling and data</p>
-            <div class="product-price">From {{currencySymbol}}15/month</div>
-            <a href="/recurring" class="cta-button">Get Started</a>
-        </div>
-
-        <!-- Installments -->
-        <div class="product-card">
-            <div class="product-tag">NEW DEVICE</div>
-            <div class="product-icon">📲</div>
-            <h3>iPhone 15</h3>
-            <p>Latest iPhone with fixed monthly installments</p>
-            <div class="product-price">{{currencySymbol}}41.62/month<br><small>24 months</small></div>
-            <a href="/installments" class="cta-button">Get Started</a>
-        </div>
-
-        <!-- Bundled/Hybrid -->
-        <div class="product-card">
-            <div class="product-tag">BEST VALUE</div>
-            <div class="product-icon">🎁</div>
-            <h3>Phone + Plan Bundle</h3>
-            <p>Get a new phone and unlimited plan together with activation fee</p>
-            <div class="product-price">{{currencySymbol}}199 today<br>+ {{currencySymbol}}60/month</div>
-            <a href="/bundled" class="cta-button">Get Started</a>
-        </div>
-
-        <!-- Unscheduled -->
-        <div class="product-card">
-            <div class="product-tag">PREPAID</div>
-            <div class="product-icon">💰</div>
-            <h3>Auto-Reload Prepaid</h3>
-            <p>Never run out of credit - automatic top-ups when your balance is low</p>
-            <div class="product-price">Auto-reload {{currencySymbol}}50<br><small>when below {{currencySymbol}}10</small></div>
-            <a href="/unscheduled" class="cta-button">Get Started</a>
-        </div>
+  <div class="container hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge">New for 2026</div>
+      <h1>Your next phone.<br><em>Smarter</em> payments.</h1>
+      <p>Merchant &amp; Co. combines the latest devices with flexible plans and PayPal wallet checkout powered by Braintree.</p>
+      <div class="hero-actions">
+        <a href="/devices" class="btn btn-secondary">Shop devices</a>
+        <a href="#plans" class="btn btn-outline" style="border-color:rgba(255,255,255,0.5);color:#fff">View plans</a>
+      </div>
     </div>
+    <div class="hero-visual">
+      <div class="hero-phone-mockup">
+        <div class="phone-notch"></div>
+        <div class="phone-icon">📱</div>
+        <div class="phone-label">Merchant &amp; Co.</div>
+      </div>
+      <div class="hero-float-badge top-left">
+        <span class="badge-num">5G</span>Ready
+      </div>
+      <div class="hero-float-badge bot-right">
+        <span class="badge-num">£29</span>/month
+      </div>
+    </div>
+  </div>
+</section>
+{{!-- Featured Devices --}}
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Featured Devices</h2>
+    <p class="section-subtitle">The latest smartphones, ready to pair with any Merchant &amp; Co. plan.</p>
+    <div class="product-grid">
+
+      <a href="/devices/iphone-16-pro" class="product-card">
+        <div class="product-card-image">
+          <span class="product-badge gold">New</span>
+          📱
+        </div>
+        <div class="product-card-body">
+          <p class="product-card-brand">Apple</p>
+          <p class="product-card-name">iPhone 16 Pro</p>
+          <p class="product-card-desc">A18 Pro chip, 48MP camera system, titanium design.</p>
+          <div class="product-card-footer">
+            <div>
+              <div class="product-price">£49<span class="product-price-sub">/mo</span></div>
+              <div class="product-price-sub">or £1,199 upfront</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <a href="/devices/samsung-s25-ultra" class="product-card">
+        <div class="product-card-image">
+          <span class="product-badge">Popular</span>
+          📲
+        </div>
+        <div class="product-card-body">
+          <p class="product-card-brand">Samsung</p>
+          <p class="product-card-name">Galaxy S25 Ultra</p>
+          <p class="product-card-desc">200MP camera, built-in S Pen, 7 years of updates.</p>
+          <div class="product-card-footer">
+            <div>
+              <div class="product-price">£52<span class="product-price-sub">/mo</span></div>
+              <div class="product-price-sub">or £1,249 upfront</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <a href="/devices/google-pixel-9-pro" class="product-card">
+        <div class="product-card-image">
+          📳
+        </div>
+        <div class="product-card-body">
+          <p class="product-card-brand">Google</p>
+          <p class="product-card-name">Pixel 9 Pro</p>
+          <p class="product-card-desc">Pure Android, Tensor G4, 7 years guaranteed updates.</p>
+          <div class="product-card-footer">
+            <div>
+              <div class="product-price">£39<span class="product-price-sub">/mo</span></div>
+              <div class="product-price-sub">or £999 upfront</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <a href="/devices/nothing-phone-3" class="product-card">
+        <div class="product-card-image">
+          <span class="product-badge gold">Best value</span>
+          📵
+        </div>
+        <div class="product-card-body">
+          <p class="product-card-brand">Nothing</p>
+          <p class="product-card-name">Phone (3)</p>
+          <p class="product-card-desc">Iconic Glyph interface, clean software, great cameras.</p>
+          <div class="product-card-footer">
+            <div>
+              <div class="product-price">£29<span class="product-price-sub">/mo</span></div>
+              <div class="product-price-sub">or £699 upfront</div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+    </div>
+    <div style="text-align:center;margin-top:36px">
+      <a href="/devices" class="btn btn-outline">See all devices</a>
+    </div>
+  </div>
+</section>
+{{!-- Plans --}}
+<section class="section bg-gray" id="plans">
+  <div class="container">
+    <h2 class="section-title">Choose your plan</h2>
+    <p class="section-subtitle">Flexible SIM-only plans. No hidden fees. Cancel anytime.</p>
+    <div class="plans-grid">
+
+      <div class="plan-card">
+        <p class="plan-name">Pay As You Go</p>
+        <p class="plan-tagline">For flexible usage</p>
+        <div class="plan-price">{{currencySymbol}}25<span>/month</span></div>
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          <li>Variable monthly usage</li>
+          <li>Secure vaulted wallet</li>
+          <li>Flexible recurring billing</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <a href="/recurring" class="btn btn-outline" style="text-align:center">Choose Pay As You Go</a>
+      </div>
+
+      <div class="plan-card featured">
+        <div class="plan-featured-tag">Most popular</div>
+        <p class="plan-name">Unlimited</p>
+        <p class="plan-tagline">For everyday use</p>
+        <div class="plan-price">{{currencySymbol}}35<span>/month</span></div>
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          <li>Unlimited Data</li>
+          <li>Unlimited calls & texts</li>
+          <li>5G ready</li>
+          <li>Roam in 30+ countries</li>
+          <li>30-day rolling contract</li>
+        </ul>
+        <a href="/subscription" class="btn btn-primary" style="text-align:center">Choose Unlimited</a>
+      </div>
+
+      <div class="plan-card">
+        <p class="plan-name">Phone + Plan</p>
+        <p class="plan-tagline">Device and service together</p>
+        <div class="plan-price">{{currencySymbol}}60<span>/month</span></div>
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          <li>{{currencySymbol}}199 activation payment</li>
+          <li>Unlimited calls & texts</li>
+          <li>5G ready</li>
+          <li>Roam in 60+ countries</li>
+          <li>Personal hotspot</li>
+          <li>30-day rolling contract</li>
+        </ul>
+        <a href="/bundled" class="btn btn-outline" style="text-align:center">Choose Bundle</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+{{!-- Trust bar --}}
+<section class="trust-bar">
+  <div class="container trust-bar-inner">
+    <div>
+      <div class="trust-item-icon">🔒</div>
+      <p class="trust-item-title">Secure payments</p>
+      <p class="trust-item-desc">PayPal wallet payments are processed securely through Braintree.</p>
+    </div>
+    <div>
+      <div class="trust-item-icon">🚚</div>
+      <p class="trust-item-title">Free next-day delivery</p>
+      <p class="trust-item-desc">Order before 8pm, receive it tomorrow.</p>
+    </div>
+    <div>
+      <div class="trust-item-icon">↩️</div>
+      <p class="trust-item-title">30-day returns</p>
+      <p class="trust-item-desc">Not happy? Return it, no questions asked.</p>
+    </div>
+    <div>
+      <div class="trust-item-icon">💬</div>
+      <p class="trust-item-title">24/7 support</p>
+      <p class="trust-item-desc">Chat, call, or email — we're always here.</p>
+    </div>
+  </div>
 </section>
