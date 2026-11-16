@@ -116,7 +116,7 @@ async function createTransaction(req, res, next) {
 
     const response = transactionResponse(result, {
       description: purchase.description,
-      paypalEmail: req.body.paypalEmail || 'N/A',
+      payerEmail: req.body.payerEmail || 'N/A',
     });
     res.status(response.status).json(response.body);
   } catch (error) {
@@ -150,8 +150,8 @@ async function submitBillingTransaction(req, res, nonce, billingPlan) {
   }
 
   const initialCharge = getInitialCharge(billingPlan);
-  const payerEmail = typeof req.body.paypalEmail === 'string'
-    ? req.body.paypalEmail.trim().slice(0, 255)
+  const payerEmail = typeof req.body.payerEmail === 'string'
+    ? req.body.payerEmail.trim().slice(0, 255)
     : undefined;
 
   const vault = await braintreeService.vaultPaymentMethod({
@@ -230,7 +230,7 @@ async function submitBillingTransaction(req, res, nonce, billingPlan) {
 
   const response = transactionResponse(result, {
     description: billingPlan.description,
-    paypalEmail: vault.email || payerEmail || 'N/A',
+    payerEmail: vault.email || payerEmail || 'N/A',
     message: initialCharge.message,
     agreementId: agreement.id,
     agreementStatus: agreement.status,

@@ -54,7 +54,7 @@
         container.appendChild(status);
     }
 
-    async function createPayPalCheckout() {
+    async function createBraintreePayPalCheckout() {
         const config = await requestJson(API.clientToken);
         const client = await braintree.client.create({
             authorization: config.clientToken
@@ -190,7 +190,7 @@
 
     async function getRecurringCheckout() {
         if (!recurringCheckoutPromise) {
-            recurringCheckoutPromise = createPayPalCheckout()
+            recurringCheckoutPromise = createBraintreePayPalCheckout()
                 .then(async ({ checkout, currency }) => {
                     await checkout.loadPayPalSDK({ vault: true, currency });
                     return { checkout, currency };
@@ -205,7 +205,7 @@
     }
 
     async function initializeRecurring(billingData) {
-        const containerId = billingData.containerId || 'paypal-button-container';
+        const containerId = billingData.containerId || 'braintree-wallet-button-container';
         showContainerMessage(containerId, 'Loading secure Braintree checkout…', false);
 
         try {
@@ -234,7 +234,7 @@
                     const result = await postJson(transactionUrl, {
                         nonce: payload.nonce,
                         quoteToken: preview.quoteToken,
-                        paypalEmail: payload.details?.email
+                        payerEmail: payload.details?.email
                     });
                     redirectToSuccess(result);
                 },
@@ -250,7 +250,7 @@
 
     async function getOneTimeCheckout() {
         if (!oneTimeCheckoutPromise) {
-            oneTimeCheckoutPromise = createPayPalCheckout()
+            oneTimeCheckoutPromise = createBraintreePayPalCheckout()
                 .then(async ({ checkout, currency }) => {
                     await checkout.loadPayPalSDK({ currency, intent: 'capture' });
                     return { checkout, currency };
@@ -265,7 +265,7 @@
     }
 
     async function initializeOneTime(billingData) {
-        const containerId = billingData.containerId || 'paypal-button-container';
+        const containerId = billingData.containerId || 'braintree-wallet-button-container';
         showContainerMessage(containerId, 'Loading secure Braintree checkout…', false);
 
         try {
@@ -306,7 +306,7 @@
                     const result = await postJson(API.transactions, {
                         nonce: payload.nonce,
                         quoteToken: quotedPurchase.quoteToken,
-                        paypalEmail: payload.details?.email
+                        payerEmail: payload.details?.email
                     });
                     redirectToSuccess(result);
                 },

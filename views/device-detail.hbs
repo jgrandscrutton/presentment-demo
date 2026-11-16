@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <div id="paypal-button-container" class="detail-paypal-actions" aria-live="polite"></div>
+      <div id="braintree-wallet-button-container" class="detail-braintree-actions" aria-live="polite"></div>
 
       <div class="detail-trust">
         <span>🔒 Secure checkout</span>
@@ -216,7 +216,7 @@
   .detail-price .price-unit { font-size: 1rem; font-weight: 500; color: var(--pp-muted); }
 
   .detail-actions { display: flex; gap: 12px; margin-bottom: 16px; }
-  .detail-paypal-actions { min-height: 48px; margin-bottom: 16px; }
+  .detail-braintree-actions { min-height: 48px; margin-bottom: 16px; }
 
   .detail-trust {
     display: flex;
@@ -292,7 +292,7 @@
     storage: '{{device.storage.0.size}}',
     colour: document.querySelector('.colour-pill.active')?.dataset.colour || '',
     amount: '{{device.upfrontPrice}}',
-    containerId: 'paypal-button-container'
+    containerId: 'braintree-wallet-button-container'
   };
 
   document.querySelectorAll('.colour-pill').forEach((pill) => {

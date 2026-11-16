@@ -668,24 +668,6 @@ img { display: block; max-width: 100%; }
   .co-step-divider { min-width: 12px; margin: 0 6px; }
 }
 
-/* ── PayPal Components ──────────────────────────────────────────────── */
-.detail-paypal-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.detail-paypal-actions paypal-button,
-.detail-paypal-actions paypal-pay-later-button {
-  display: block;
-  width: 100%;
-  --paypal-button-border-radius: 50px;
-}
-
-paypal-message {
-   --paypal-message-font-size: 12px;
- }
-
 /* ── hosted Fields  ──────────────────────────────────────────────── */
 .card-fields-container {
   display: flex;

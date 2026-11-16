@@ -100,7 +100,7 @@
 
         typeSelect.addEventListener('change', () => {
             details.replaceChildren();
-            document.getElementById('paypal-button-container').replaceChildren();
+            document.getElementById('braintree-wallet-button-container').replaceChildren();
 
             if (!typeSelect.value) {
                 details.style.display = 'none';
