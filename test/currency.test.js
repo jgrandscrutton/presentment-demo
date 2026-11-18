@@ -200,6 +200,32 @@ test('demo and verification amounts are deterministic and valid for every curren
   assert.match(getDemoAmount('USD'), /^\d+\.\d{2}$/);
 });
 
+test('verification amounts avoid Braintree Sandbox dispute trigger values', () => {
+  const reservedTwoDecimalAmounts = new Set([
+    '10.40',
+    '13.10',
+    '62.00',
+    '62.01',
+    '70.30',
+    '83.00',
+  ]);
+
+  for (const currency of BRAINTREE_CURRENCIES) {
+    for (let variant = 0; variant < 1000; variant += 1) {
+      const amount = getVerificationAmount(currency, variant);
+      assert.equal(validateCanonicalAmount(amount, currency).valid, true, `${currency} ${variant}`);
+      if (getCurrencyDecimalPlaces(currency) === 0) {
+        assert.ok(Number(amount) >= 101 && Number(amount) <= 999, `${currency} ${amount}`);
+      } else {
+        assert.ok(Number(amount) >= 1.01 && Number(amount) <= 9.99, `${currency} ${amount}`);
+        assert.equal(reservedTwoDecimalAmounts.has(amount), false, `${currency} ${amount}`);
+      }
+    }
+  }
+
+  assert.notEqual(getVerificationAmount('EUR', 501), '13.10');
+});
+
 test('sandbox outcome amounts are fixed triggers rather than converted demo prices', () => {
   assert.deepEqual(SANDBOX_OUTCOME_AMOUNTS, {
     processor_declined: '2001',

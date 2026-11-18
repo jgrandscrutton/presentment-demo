@@ -1,0 +1,312 @@
+.disputes-page {
+  min-height: calc(100vh - 160px);
+}
+
+.disputes-hero {
+  align-items: center;
+  background:
+    radial-gradient(circle at 87% 15%, rgba(66, 172, 255, 0.25), transparent 28%),
+    linear-gradient(145deg, var(--blue-950), var(--blue-800));
+  color: #fff;
+  display: grid;
+  gap: 64px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  padding: 72px max(24px, calc((100vw - 1180px) / 2));
+}
+
+.disputes-hero h1 {
+  font-size: clamp(2.2rem, 5vw, 4.6rem);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  margin: 0 0 24px;
+  max-width: 780px;
+}
+
+.disputes-hero > div > p:last-child {
+  color: #d9ebff;
+  font-size: 1.05rem;
+  margin: 0;
+  max-width: 690px;
+}
+
+.dispute-proof {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 22px;
+  list-style: none;
+  margin: 0;
+  padding: 12px 24px;
+}
+
+.dispute-proof li {
+  display: grid;
+  gap: 3px;
+  padding: 15px 0;
+}
+
+.dispute-proof li + li {
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dispute-proof span {
+  color: #cde6ff;
+  font-size: 0.88rem;
+}
+
+.dispute-workspace {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 64px 24px 84px;
+}
+
+.dispute-heading {
+  align-items: flex-end;
+  display: flex;
+  justify-content: space-between;
+}
+
+.dispute-heading h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  letter-spacing: -0.045em;
+  margin: 0;
+}
+
+.dispute-heading p:not(.section-kicker) {
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.polling-state {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.88rem;
+  gap: 9px;
+}
+
+.polling-state > span:first-child {
+  background: #25a474;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(37, 164, 116, 0.12);
+  height: 8px;
+  width: 8px;
+}
+
+.webhook-boundary {
+  align-items: flex-start;
+  background: var(--blue-50);
+  border: 1px solid #c8def8;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 26px 0;
+  padding: 15px 18px;
+}
+
+.webhook-boundary span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.dispute-list {
+  display: grid;
+  gap: 18px;
+}
+
+.dispute-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(24, 46, 88, 0.08);
+  overflow: hidden;
+}
+
+.dispute-card-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 24px;
+}
+
+.dispute-card h3 {
+  font-size: 1.25rem;
+  margin: 5px 0;
+}
+
+.dispute-kicker,
+.dispute-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.dispute-status {
+  background: var(--orange-bg);
+  border-radius: 999px;
+  color: var(--orange);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 7px 11px;
+  text-transform: uppercase;
+}
+
+.dispute-status[data-status="won"],
+.dispute-status[data-status="accepted"] {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.dispute-details {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 18px 24px;
+}
+
+.dispute-details div {
+  min-width: 0;
+}
+
+.dispute-details dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dispute-details dd {
+  font-size: 0.9rem;
+  font-weight: 650;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.dispute-actions {
+  background: #f9fbfe;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dispute-actions button {
+  background: var(--blue-800);
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+  padding: 10px 15px;
+}
+
+.dispute-actions button.secondary {
+  background: #fff;
+  border: 1px solid #b9cbe1;
+  color: var(--blue-800);
+}
+
+.dispute-actions button.danger {
+  background: #9f251c;
+}
+
+.dispute-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.evidence-form {
+  display: grid;
+  gap: 8px;
+}
+
+.evidence-form label {
+  font-size: 0.85rem;
+  font-weight: 750;
+}
+
+.evidence-form textarea {
+  border: 1px solid #b9cbe1;
+  border-radius: 10px;
+  font: inherit;
+  min-height: 88px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.evidence-form textarea:focus,
+.dispute-actions button:focus-visible {
+  outline: 3px solid rgba(0, 112, 224, 0.25);
+  outline-offset: 2px;
+}
+
+.action-status {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+.action-status[data-state="error"] {
+  color: #9f251c;
+}
+
+.action-status[data-state="success"] {
+  color: var(--green);
+}
+
+.empty-disputes {
+  align-items: center;
+  background: #fff;
+  border: 1px dashed #b9cbe1;
+  border-radius: 18px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.empty-disputes strong {
+  color: var(--ink);
+}
+
+@media (max-width: 800px) {
+  .disputes-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .dispute-heading,
+  .dispute-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dispute-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .dispute-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

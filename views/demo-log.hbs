@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Durable audit log and live Sandbox operations for the Braintree routing demonstration.">
+  <meta name="description" content="Durable routing, payment, and 3D Secure proof for the Braintree Sandbox demonstration.">
   <title>{{title}} · PhonePal</title>
   <link rel="stylesheet" href="/stylesheets/demo.css">
 </head>
@@ -16,6 +16,9 @@
     <nav class="demo-nav" aria-label="Demo sections">
       <a href="/demo">Scenario runner</a>
       <a href="/demo/log" aria-current="page">Transaction log</a>
+      <a href="/demo/disputes">Disputes</a>
+      <a href="/demo/preflight">Preflight</a>
+      <a href="/demo/routes">Routes</a>
     </nav>
     <div class="environment-pill" aria-label="Environment: Braintree Sandbox">
       <span class="status-dot" aria-hidden="true"></span>
@@ -26,9 +29,9 @@
 
   <main>
     <section class="log-hero" aria-labelledby="page-title">
-      <p class="eyebrow"><span>Stage 2</span> Transaction lifecycle</p>
+      <p class="eyebrow"><span>Stage 7</span> Presentation-ready payment lifecycle</p>
       <h1 id="page-title">Every request.<br><em>One durable proof trail.</em></h1>
-      <p>Filter persisted demo events, inspect the redacted gateway result, and run only the operations Braintree permits in the transaction's current live state.</p>
+      <p>Filter persisted demo events, inspect redacted route and 3D Secure proof, and run only the operations Braintree permits in the transaction's current live state.</p>
     </section>
 
     <section class="log-shell" aria-labelledby="log-title">
@@ -62,6 +65,18 @@
         <button class="secondary-button" type="submit">Apply filters</button>
       </form>
 
+      <section class="log-reset-panel" aria-labelledby="local-reset-title" data-local-reset>
+        <div>
+          <p class="section-kicker">Presenter reset</p>
+          <h3 id="local-reset-title">Start with a clean local proof trail</h3>
+          <p>Clears only this demo's local audit events and visible activity. Braintree transactions, subscriptions, customers, payment methods, and disputes stay unchanged.</p>
+          <p id="local-reset-status" class="log-reset-status" role="status" aria-live="polite">Nothing changes until you confirm.</p>
+        </div>
+        <button id="reset-local-demo" class="danger-button" type="button"
+          data-local-reset-button data-reset-endpoint="/demo/log/reset"
+          data-reset-confirmation="clear-local-demo-events">Reset local demo</button>
+      </section>
+
       {{#if hasRows}}
         <div class="log-list" aria-live="polite">
           {{#each rows}}
@@ -72,6 +87,7 @@
                 <div class="log-cell"><span>Amount</span><strong>{{amountLabel}}{{#if currency}} · {{currency}}{{/if}}</strong></div>
                 <div class="log-cell"><span>Merchant account</span><strong>{{accountLabel}}</strong>{{#if accountId}}<code>{{accountId}}</code>{{/if}}</div>
                 <div class="log-cell"><span>Method</span><strong>{{paymentMethodLabel}}</strong></div>
+                <div class="log-cell"><span>3D Secure</span><strong class="log-three-d-secure {{threeDSecureClass}}">{{threeDSecureLabel}}</strong></div>
                 <div class="log-cell"><span>Outcome</span><strong>{{statusLabel}}</strong><span class="log-proof {{verificationClass}}">{{verificationLabel}}</span></div>
                 <span class="log-toggle" aria-hidden="true">+</span>
               </summary>
@@ -81,7 +97,7 @@
                   <pre>{{inspectorJson}}</pre>
                 </section>
                 <section class="operation-panel" aria-label="Transaction operations">
-                  <h3>Live transaction controls</h3>
+                  <h3>{{operationHeading}}</h3>
                   {{#if canOperate}}
                     <p class="operation-status" data-live-status>Checking live Braintree status…</p>
                     <div class="action-groups" data-action-controls hidden>
@@ -136,7 +152,7 @@
 
   <footer>
     <p>PhonePal · Braintree routing demonstration</p>
-    <p>Stage 2 / Sandbox only</p>
+    <p>Stage 7 / Sandbox only</p>
   </footer>
   <script src="/scripts/demo-log.js"></script>
 </body>

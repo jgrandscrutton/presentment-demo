@@ -86,6 +86,7 @@ function assertMatchedPolicyRoute(intent, expectedAccountId) {
     {
       account: expectedAccountId,
       result: 'matched',
+      threeDSecurePolicy: decision.account.threeDSecurePolicy,
       why: 'Matched by merchant policy',
     }
   );
@@ -151,6 +152,7 @@ test('reports automatic assignment wording from a catalog built without an overl
     {
       account: 'vmUSD',
       result: 'matched',
+      threeDSecurePolicy: 'optional',
       why: 'Matched automatically (first active USD account by merchant account ID)',
     }
   );
@@ -254,6 +256,47 @@ test('ignores a client-supplied merchant account ID', () => {
   assert.equal(Object.hasOwn(decision.intent, 'merchantAccountId'), false);
 });
 
+test('payment method never changes the server-selected route', () => {
+  const cardDecision = resolveRoute(
+    { currency: 'USD', paymentType: 'one_time', paymentMethod: 'card' },
+    POLICY_CATALOG
+  );
+  const paypalDecision = resolveRoute(
+    { currency: 'USD', paymentType: 'one_time', paymentMethod: 'paypal' },
+    POLICY_CATALOG
+  );
+
+  assert.equal(cardDecision.matched, true);
+  assert.equal(paypalDecision.matched, true);
+  assert.equal(cardDecision.account.merchantAccountId, 'vmUSD');
+  assert.equal(paypalDecision.account.merchantAccountId, 'vmUSD');
+  assert.deepEqual(cardDecision.intent, paypalDecision.intent);
+  assert.equal(Object.hasOwn(cardDecision.intent, 'paymentMethod'), false);
+  assert.equal(Object.hasOwn(paypalDecision.intent, 'paymentMethod'), false);
+});
+
+test('the selected account and matched trace expose the server-owned 3D Secure policy', () => {
+  const eurDecision = resolveRoute(
+    { currency: 'EUR', paymentType: 'one_time' },
+    POLICY_CATALOG
+  );
+  const usdDecision = resolveRoute(
+    { currency: 'USD', paymentType: 'one_time' },
+    POLICY_CATALOG
+  );
+
+  assert.equal(eurDecision.account.threeDSecurePolicy, 'required');
+  assert.equal(
+    eurDecision.trace.find((entry) => entry.result === 'matched').threeDSecurePolicy,
+    'required'
+  );
+  assert.equal(usdDecision.account.threeDSecurePolicy, 'optional');
+  assert.equal(
+    usdDecision.trace.find((entry) => entry.result === 'matched').threeDSecurePolicy,
+    'optional'
+  );
+});
+
 test('returns an account copy and does not mutate an injected catalog', () => {
   const catalog = mutablePolicyCatalog();
   const before = structuredClone(catalog);
@@ -268,6 +311,7 @@ test('returns an account copy and does not mutate an injected catalog', () => {
   assert.deepEqual(catalog, before);
   assert.notStrictEqual(decision.account, sourceAccount);
   assert.notStrictEqual(decision.account.paymentTypes, sourceAccount.paymentTypes);
+  assert.notStrictEqual(decision.account.paymentMethods, sourceAccount.paymentMethods);
   assert.notStrictEqual(
     decision.account.paymentTypeSources,
     sourceAccount.paymentTypeSources

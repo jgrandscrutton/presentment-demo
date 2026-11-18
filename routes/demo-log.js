@@ -2,14 +2,25 @@
 
 const express = require('express');
 
-const { buildSandboxTransactionUrl } = require('../lib/braintree/result');
+const {
+  buildSandboxSubscriptionUrl,
+  buildSandboxTransactionUrl,
+} = require('../lib/braintree/result');
 const { getRuntimeCatalogService } = require('../lib/catalog/runtime');
 const eventStore = require('../lib/events/store');
 const { formatCurrencyAmount } = require('../lib/currency');
 const { redact } = require('../lib/inspector/redact');
+const {
+  PAYMENT_METHOD_LABELS,
+  normalizePaymentMethod,
+  paymentMethodFromInstrumentType,
+} = require('../lib/payment-methods');
 
 const ALL_FILTER = '__all__';
 const LEGACY_FILTER = '__legacy__';
+const RESET_CONFIRMATION_HEADER = 'X-Demo-Reset-Confirmation';
+const RESET_CONFIRMATION_VALUE = 'clear-local-demo-events';
+const RESET_SCOPE = 'local_event_store';
 
 function uniqueStrings(values) {
   return [...new Set(values.filter(
@@ -72,9 +83,157 @@ function accountIdFrom(event) {
 
 function eventStatus(event) {
   return event.response?.transaction?.status ||
+    event.response?.subscription?.status ||
     event.braintreeResult?.transaction?.status ||
+    event.subscriptionStatus ||
     event.transactionStatus ||
     null;
+}
+
+function paymentMethodLabel(value) {
+  if (typeof value !== 'string' || value.trim() === '') return '—';
+  const canonical = normalizePaymentMethod(value) || paymentMethodFromInstrumentType(value);
+  return PAYMENT_METHOD_LABELS[canonical] || value;
+}
+
+function readableThreeDSecureStatus(value) {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+
+  const labels = {
+    authenticate_successful: 'Authenticated',
+    authenticate_attempt_successful: 'Attempted',
+    authenticate_rejected: 'Authentication rejected',
+    authenticate_error: 'Authentication error',
+    authentication_unavailable: 'Authentication unavailable',
+    lookup_enrolled: 'Challenge required',
+    lookup_not_enrolled: 'Not enrolled',
+    lookup_bypassed: 'Lookup bypassed',
+    lookup_error: 'Lookup error',
+  };
+  const status = value.trim().toLowerCase();
+  if (labels[status]) return labels[status];
+
+  return status
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function threeDSecureSummary(event) {
+  const canonicalMethod = normalizePaymentMethod(event.paymentMethodType) ||
+    paymentMethodFromInstrumentType(event.paymentMethodType);
+  if (canonicalMethod === 'paypal') {
+    return {
+      label: 'Not applicable · PayPal',
+      className: 'is-neutral',
+    };
+  }
+
+  const verification = event.threeDSecureVerification &&
+    typeof event.threeDSecureVerification === 'object' &&
+    !Array.isArray(event.threeDSecureVerification)
+    ? event.threeDSecureVerification
+    : {};
+  const policy = event.threeDSecurePolicy || verification.policy || null;
+  const status = event.threeDSecureStatus ?? verification.status ?? null;
+  const liabilityShifted = event.liabilityShifted ?? verification.liabilityShifted ?? null;
+  const performed = verification.performed;
+  const evidenceScope = event.threeDSecureEvidenceScope ||
+    verification.evidenceScope ||
+    null;
+  const transactionAuthenticated =
+    event.transactionThreeDSecureAuthenticated ??
+    verification.transactionAuthenticated ??
+    null;
+
+  if (
+    !policy &&
+    status === null &&
+    liabilityShifted === null &&
+    performed === undefined &&
+    !evidenceScope &&
+    transactionAuthenticated === null
+  ) {
+    return {
+      label: 'Not recorded',
+      className: 'is-neutral',
+    };
+  }
+
+  const policyLabel = policy === 'required'
+    ? 'Required'
+    : policy === 'optional'
+      ? 'Optional'
+      : 'Policy not recorded';
+  const statusLabel = readableThreeDSecureStatus(status) ||
+    (performed === false ? 'Not performed' : 'Status unavailable');
+  const liabilityLabel = liabilityShifted === true
+    ? 'Liability shifted'
+    : liabilityShifted === false
+      ? 'Liability not shifted'
+      : 'Shift unavailable';
+  const failed = verification.passed === false || event.verified === false;
+  const recurringEvidence = Boolean(event.recurringModel) ||
+    ['recurring', 'recurring_first'].includes(event.transactionSource) ||
+    ['subscription', 'subscription_action'].includes(event.type);
+
+  if (!evidenceScope && recurringEvidence) {
+    return {
+      label: 'Recurring evidence · Scope unavailable · Transaction authentication not established',
+      className: failed ? 'is-failed' : 'is-neutral',
+    };
+  }
+
+  if (evidenceScope === 'vault_setup') {
+    return {
+      label: `Vault setup · ${statusLabel} · ${
+        liabilityShifted === true
+          ? 'Setup liability shifted'
+          : liabilityShifted === false
+            ? 'Setup liability not shifted'
+            : 'Setup shift unavailable'
+      }`,
+      className: failed ? 'is-failed' : 'is-neutral',
+    };
+  }
+
+  if (transactionAuthenticated === false) {
+    const scopeLabel = evidenceScope === 'subscription_transaction'
+      ? 'Subscription transaction'
+      : evidenceScope === 'vaulted_one_time_transaction'
+        ? 'Vaulted one-time transaction'
+        : '3D Secure evidence';
+    return {
+      label: `${scopeLabel} · Transaction not authenticated`,
+      className: failed ? 'is-failed' : 'is-neutral',
+    };
+  }
+
+  return {
+    label: `${policyLabel} · ${statusLabel} · ${liabilityLabel}`,
+    className: liabilityShifted === true && !failed
+      ? 'is-verified'
+      : failed
+        ? 'is-failed'
+        : 'is-neutral',
+  };
+}
+
+function eventTypeLabel(event) {
+  const labels = {
+    route_resolution: 'Route decision',
+    transaction: 'Transaction',
+    transaction_action: `Action · ${event.action || 'operation'}`,
+    three_d_secure: '3D Secure',
+    vault: 'Vault verification',
+    subscription: 'Subscription',
+    subscription_action: `Subscription · ${event.action || 'operation'}`,
+    webhook: `Webhook · ${event.webhookKind || 'notification'}`,
+    dispute_action: `Dispute · ${event.action || 'operation'}`,
+  };
+
+  return labels[event.type] || event.type || 'Recorded event';
 }
 
 function labelForAccount(accountId, accountMap) {
@@ -153,6 +312,7 @@ function buildDemoLogViewModel({
   const rows = filtered.reverse().map((event) => {
     const accountId = accountIdFrom(event);
     const account = labelForAccount(accountId, accountMap);
+    const isTransactionRecord = ['transaction', 'transaction_action'].includes(event.type);
     const isRootTransaction = event.type === 'transaction' && !event.relatedEventId;
     const isCurrentGateway = Boolean(
       currentGateway && event.gatewayMerchantId === currentGateway
@@ -164,21 +324,20 @@ function buildDemoLogViewModel({
       event.braintreeId &&
       activeAccountIds.has(accountId)
     );
+    const threeDSecure = threeDSecureSummary(event);
 
     return {
       ...event,
       timestampLabel: displayTimestamp(event.timestamp),
       amountLabel: displayAmount(event),
       scenarioLabel: event.scenarioId || event.intent?.paymentType || 'Manual',
-      eventTypeLabel: event.type === 'transaction_action'
-        ? `Action · ${event.action || 'operation'}`
-        : event.type === 'transaction'
-          ? 'Transaction'
-          : 'Route decision',
+      eventTypeLabel: eventTypeLabel(event),
       accountLabel: account.label,
       accountId: account.raw,
       statusLabel: eventStatus(event) || event.outcome || 'Recorded',
-      paymentMethodLabel: event.paymentMethodType || '—',
+      paymentMethodLabel: paymentMethodLabel(event.paymentMethodType),
+      threeDSecureLabel: threeDSecure.label,
+      threeDSecureClass: threeDSecure.className,
       verificationLabel: event.verified === true
         ? 'Verified'
         : event.verified === false
@@ -190,9 +349,14 @@ function buildDemoLogViewModel({
           ? 'is-failed'
           : 'is-neutral',
       canOperate,
+      operationHeading: isTransactionRecord
+        ? 'Live transaction controls'
+        : 'Recorded event',
       operationReason: canOperate
         ? 'Checking live Braintree status…'
-        : !isRootTransaction
+        : !isTransactionRecord
+          ? 'This vault or subscription record is evidence only; use the scenario runner for its lifecycle controls.'
+          : !isRootTransaction
           ? 'Only original transaction rows can be operated on.'
           : !isCurrentGateway
             ? 'Historical and legacy gateway events are read-only.'
@@ -201,10 +365,9 @@ function buildDemoLogViewModel({
               : 'The original route was not verified.',
       isFollowUp: Boolean(event.relatedEventId),
       inspectorJson: JSON.stringify(event, null, 2),
-      controlPanelUrl: buildSandboxTransactionUrl(
-        event.gatewayMerchantId,
-        event.braintreeId
-      ),
+      controlPanelUrl: event.type === 'subscription' || event.type === 'subscription_action'
+        ? buildSandboxSubscriptionUrl(event.gatewayMerchantId, event.subscriptionId)
+        : buildSandboxTransactionUrl(event.gatewayMerchantId, event.braintreeId),
     };
   });
 
@@ -279,17 +442,73 @@ function createDemoLogRouter({
     }
   });
 
+  router.post('/reset', (req, res) => {
+    if (!req.is('application/json')) {
+      return res.status(415).json({
+        success: false,
+        error: {
+          code: 'RESET_JSON_REQUIRED',
+          message: 'Local demo reset accepts only an explicit JSON request.',
+        },
+      });
+    }
+    if (
+      req.get(RESET_CONFIRMATION_HEADER) !== RESET_CONFIRMATION_VALUE ||
+      req.body?.scope !== RESET_SCOPE
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'RESET_CONFIRMATION_REQUIRED',
+          message: 'Confirm the local-only reset from the transaction log before continuing.',
+        },
+      });
+    }
+    if (typeof store?.clear !== 'function') {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: 'RESET_UNAVAILABLE',
+          message: 'Local demo history cannot be reset right now. Nothing in Braintree was changed.',
+        },
+      });
+    }
+
+    try {
+      const removed = store.clear();
+      return res.status(200).json({
+        success: true,
+        clearedLocalEvents: Number.isInteger(removed) && removed >= 0 ? removed : 0,
+        braintreeObjectsChanged: false,
+      });
+    } catch {
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'RESET_FAILED',
+          message: 'Local demo history could not be cleared. Nothing in Braintree was changed.',
+        },
+      });
+    }
+  });
+
   return router;
 }
 
 const router = createDemoLogRouter();
 router.ALL_FILTER = ALL_FILTER;
 router.LEGACY_FILTER = LEGACY_FILTER;
+router.RESET_CONFIRMATION_HEADER = RESET_CONFIRMATION_HEADER;
+router.RESET_CONFIRMATION_VALUE = RESET_CONFIRMATION_VALUE;
+router.RESET_SCOPE = RESET_SCOPE;
 router.buildDemoLogViewModel = buildDemoLogViewModel;
 router.createDemoLogRouter = createDemoLogRouter;
 
 module.exports = router;
 module.exports.ALL_FILTER = ALL_FILTER;
 module.exports.LEGACY_FILTER = LEGACY_FILTER;
+module.exports.RESET_CONFIRMATION_HEADER = RESET_CONFIRMATION_HEADER;
+module.exports.RESET_CONFIRMATION_VALUE = RESET_CONFIRMATION_VALUE;
+module.exports.RESET_SCOPE = RESET_SCOPE;
 module.exports.buildDemoLogViewModel = buildDemoLogViewModel;
 module.exports.createDemoLogRouter = createDemoLogRouter;

@@ -58,6 +58,10 @@ test('append stores the complete event shape and persists only redacted plain da
     responseMerchantAccountId: 'vmUSD',
     verified: true,
     paymentMethodType: 'credit_card',
+    threeDSecurePolicy: 'required',
+    threeDSecureStatus: 'authenticate_successful',
+    liabilityShiftPossible: true,
+    liabilityShifted: true,
     amount: '19.99',
     currency: 'USD',
     outcome: 'submitted_for_settlement',
@@ -80,6 +84,10 @@ test('append stores the complete event shape and persists only redacted plain da
   assert.equal(event.response.paymentMethodToken, REDACTED);
   assert.equal(event.response.creditCard.number, REDACTED);
   assert.equal(event.response.creditCard.last4, '1111');
+  assert.equal(event.threeDSecurePolicy, 'required');
+  assert.equal(event.threeDSecureStatus, 'authenticate_successful');
+  assert.equal(event.liabilityShiftPossible, true);
+  assert.equal(event.liabilityShifted, true);
   assert.equal(event.response.void, undefined);
   assert.equal(event.relatedEventId, null);
   assert.equal(event.decision.reason, 'Demo policy match: USD + one-time');
@@ -175,6 +183,52 @@ test('multiple store instances append without overwriting one another', (t) => {
   assert.deepEqual(
     JSON.parse(fs.readFileSync(filePath, 'utf8')).map((event) => event.scenarioId),
     ['first', 'second']
+  );
+});
+
+test('appendIfAbsent makes the duplicate decision atomically across store instances', (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'presentment-events-dedupe-'));
+  const filePath = path.join(directory, 'events.json');
+  t.after(() => fs.rmSync(directory, { force: true, recursive: true }));
+
+  const firstStore = createEventStore({
+    filePath,
+    generateId: () => 'webhook-first',
+    getGatewayMerchantId: () => 'gateway-merchant-1',
+    now: () => '2026-11-16T12:00:00.000Z',
+  });
+  const secondStore = createEventStore({
+    filePath,
+    generateId: () => 'webhook-second',
+    getGatewayMerchantId: () => 'gateway-merchant-1',
+    now: () => '2026-11-16T12:00:01.000Z',
+  });
+  const sameWebhook = (candidate, proposed) =>
+    candidate.type === 'webhook' &&
+    candidate.gatewayMerchantId === proposed.gatewayMerchantId &&
+    candidate.webhookKind === proposed.webhookKind &&
+    candidate.webhookTimestamp === proposed.webhookTimestamp &&
+    candidate.disputeId === proposed.disputeId;
+  const input = {
+    type: 'webhook',
+    webhookKind: 'dispute_opened',
+    webhookTimestamp: '2026-11-16T11:59:59.000Z',
+    disputeId: 'dispute-atomic',
+  };
+
+  const first = firstStore.appendIfAbsent(input, sameWebhook);
+  const duplicate = secondStore.appendIfAbsent(input, sameWebhook);
+  const distinct = secondStore.appendIfAbsent({
+    ...input,
+    webhookTimestamp: '2026-11-16T12:00:02.000Z',
+  }, sameWebhook);
+
+  assert.equal(first.id, 'webhook-first');
+  assert.equal(duplicate, null);
+  assert.equal(distinct.id, 'webhook-second');
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(filePath, 'utf8')).map((event) => event.id),
+    ['webhook-first', 'webhook-second']
   );
 });
 

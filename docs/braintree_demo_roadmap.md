@@ -30,6 +30,7 @@
 - **The browser never chooses or sends a merchant account ID.** The client sends *intent* (currency, payment type, scenario ID). The server resolves the merchant account.
 - **Every Braintree call that accepts `merchantAccountId` must pass it explicitly.** Never rely on the gateway default (`paypal2`). Enforce this in code (wrapper functions that throw if it is missing) and in tests.
 - **Resolve the route before generating the client token**, and generate the client token with the resolved merchant account ID. PayPal, 3D Secure, and local payment methods depend on the currency of the account the token was generated for.
+- **Every payment method goes through Braintree.** PayPal is offered through Braintree PayPal Checkout and becomes a Braintree nonce before the server submits it to the Braintree gateway. Do not add direct PPCP OAuth, Orders API, capture, subscription, or webhook code paths.
 - **An unmatched route is an explicit error, never a fallback to the default account.** A request for an unsupported currency must return a clear "no route" result.
 - After every transaction, **verify that `transaction.merchantAccountId` in Braintree's response matches the resolved account**, and record the result. A mismatch is a bug and must be surfaced loudly in the UI and log.
 
@@ -196,7 +197,9 @@ The detailed implementation specification and acceptance tests are in [`stage_1.
 
 ### Stage 3: Vault and recurring payments
 
-**[DECISION]** before starting: Confirm which recurring models to show. Recommended: both A and B below.
+**[DECISION — RESOLVED]** Show both models below: merchant-managed recurring and Braintree Subscriptions.
+
+**Status:** Implemented and approved. The opt-in live Sandbox verifier remains available for a deliberate artifact-creating check.
 
 **Goal:** Recurring payments are routed for real. The merchant-defined USD one-time/recurring policy becomes visible across the two processor variants.
 
@@ -226,7 +229,9 @@ The detailed implementation specification and acceptance tests are in [`stage_1.
 
 ### Stage 4: Webhooks and disputes
 
-**[DECISION]** before starting: how Braintree will reach the server. Either a hosted deployment with a public HTTPS URL, or a tunnel to the local machine. The human configures the webhook URL in the Sandbox Control Panel.
+**[DECISION — RESOLVED]** Use a restricted HTTPS tunnel to a dedicated local webhook-only listener. The main demo remains bound to loopback and is not exposed. The human configures the temporary webhook URL in the Sandbox Control Panel.
+
+**Status:** Implemented locally — live Sandbox review is blocked until an OS-approved HTTPS tunnel client is available and its temporary URL is configured in the Control Panel, as described in `STAGE_4_CHANGES.md`.
 
 **Goal:** Show the operational side of the gateway: events arriving in real time, and dispute handling.
 
@@ -250,25 +255,29 @@ The detailed implementation specification and acceptance tests are in [`stage_1.
 
 ### Stage 5: More payment methods
 
-**[DECISION]** before starting: which methods are enabled in the sandbox for each merchant account. The human checks the Control Panel. For Apple Pay, domain verification needs the hosted HTTPS deployment from Stage 4.
+**[DECISION — RESOLVED 16 NOVEMBER 2026]** Card remains the mandatory baseline and PayPal is explicitly enabled for the four configured Sandbox accounts. A read-only client-token capability check confirmed Braintree PayPal configuration and the expected account currency for each account. Venmo, Apple Pay, Google Pay, and local payment methods remain disabled. Apple Pay still requires the hosted HTTPS deployment and domain verification from Stage 4 before it can be considered.
+
+**Status:** Implemented locally. The opt-in Sandbox verifier live-proved all six Card routes. A successful PayPal transaction still requires a fresh browser-approved nonce because the connected Sandbox is linked to PayPal and static mocked nonces are not safely reusable there. The separate Stage 4 public-callback review also remains outstanding.
 
 **Goal:** Prove that routing works the same no matter how the customer pays.
 
 **Build:**
 - A payment-method availability matrix in the connected gateway's policy overlay (method × currency/account), validated when the overlay is applied. Automatic defaults are conservative: offer cards only unless the overlay explicitly enables another method. Venmo may still be enabled only for USD accounts. Apple Pay, Google Pay, PayPal, and optional local payment methods appear only where the overlay enables them and the sandbox supports them.
 - The scenario runner offers only valid method/currency combinations, so live demos never hit an unsupported pairing.
-- PayPal for both one-time payments and vaulting (for recurring routes).
+- PayPal through Braintree PayPal Checkout for both one-time payments and vaulting (for recurring routes).
 - Record the payment method type in the inspector and log.
 
 **Acceptance criteria:**
 - Tests prove that the same intent resolves to the same account regardless of payment method.
-- Every enabled method completes a sandbox payment on its expected account, checked by `verify:sandbox`.
+- Every Card route completes a Sandbox payment on its expected account, checked by the Stage 5 verifier. PayPal must complete through the demo UI with a fresh linked-Sandbox buyer approval; the verifier refuses static PayPal mutation by default and must not report that method as live-passed until browser approval succeeds.
 
-**Demo moment:** Pay in USD with a card, then PayPal, then Venmo. All three land on the same account because routing follows business rules, not the payment method.
+**Demo moment:** Pay the same USD intent first with a card and then with PayPal. Both land on the same merchant account because routing follows business rules, not the payment method.
 
 ---
 
 ### Stage 6: 3D Secure
+
+**Status:** Implemented locally. Required Card authentication is enforced from server-observed Braintree evidence before mutation, and the browser flow uses Braintree 3D Secure v2. Live Sandbox challenge and liability-shift review remains outstanding as described in `STAGE_6_CHANGES.md`.
 
 **Goal:** Show strong customer authentication and liability shift, which matters most on the EUR route.
 
@@ -335,15 +344,16 @@ The detailed implementation specification and acceptance tests are in [`stage_1.
 | Decision | Resolution |
 | --- | --- |
 | USD demo routing policy | `vmUSD` for one-time and `vmUSD2` for recurring. These are processor variants; the split is configurable merchant policy. |
+| Stage 3 recurring models | Both recommended models were approved and implemented: merchant-managed recurring and Braintree Subscriptions. |
+| Stage 4 webhook reachability | A restricted HTTPS tunnel targets a dedicated local webhook-only listener; the normal demo and mutation routes remain private on loopback. |
+| Stage 5 Sandbox methods | Card and Braintree-mediated PayPal are enabled on all four configured accounts; every other method remains disabled pending a separate capability and policy decision. |
+| Stage 6 Card authentication policy | EUR defaults to required 3D Secure; other currencies default to optional. A valid per-account overlay may override the default, while invalid policy fails closed to required. |
 
 ### Open
 
 | # | Decision | Needed before | Owner |
 | --- | --- | --- | --- |
-| 1 | Recurring models to show: merchant-managed, Braintree Subscriptions, or both (recommended: both) | Stage 3 | Human |
-| 2 | Public URL for webhooks (hosted deployment or tunnel) | Stage 4 | Human |
-| 3 | Which payment methods are enabled per merchant account in the sandbox | Stage 5 | Human |
-| 4 | Whether the demo may be shown externally to clients, and any internal approval needed | Before the first client demo | Human |
+| 1 | Whether the demo may be shown externally to clients, and any internal approval needed | Before the first client demo | Human |
 
 ---
 

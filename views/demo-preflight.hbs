@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Read-only readiness checks for the Braintree Sandbox routing demonstration.">
+  <title>{{title}} · PhonePal</title>
+  <link rel="stylesheet" href="/stylesheets/demo.css">
+</head>
+<body data-catalog-available="{{catalogAvailable}}" data-catalog-status="{{catalogStatus}}">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="PhonePal home">
+      <img src="/img/pp-logo.png" alt="" width="40" height="40">
+      <span>PhonePal</span>
+    </a>
+    <nav class="demo-nav" aria-label="Demo sections">
+      <a href="/demo">Scenario runner</a>
+      <a href="/demo/log">Transaction log</a>
+      <a href="/demo/disputes">Disputes</a>
+      <a href="/demo/preflight" aria-current="page">Preflight</a>
+      <a href="/demo/routes">Routes</a>
+    </nav>
+    <div class="environment-pill" aria-label="Environment: Braintree Sandbox">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span class="environment-label-full">Braintree Sandbox</span>
+      <span class="environment-label-short">Sandbox</span>
+    </div>
+  </header>
+
+  <main class="preflight-page">
+    <section class="preflight-hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span>Stage 7</span> Presenter readiness</p>
+        <h1 id="page-title">Know what is ready.<br><em>Before the room is watching.</em></h1>
+        <p>Review the latest local discovery, route policy, plans, payment methods, and webhook evidence without creating or changing a Braintree payment object.</p>
+      </div>
+      <form class="preflight-refresh" action="/demo/preflight/refresh" method="post">
+        <strong>Run fresh read-only checks</strong>
+        <span>This explicitly rediscovers merchant accounts and subscription plans. It never creates a transaction, customer, vault record, subscription, or dispute action.</span>
+        <button class="primary-button" type="submit">Refresh Sandbox discovery</button>
+      </form>
+    </section>
+
+    {{#if refreshResult}}
+      <section class="preflight-result {{refreshResult.stateClass}}" role="status" aria-live="polite">
+        <strong>{{refreshResult.title}}</strong>
+        <span>{{refreshResult.message}}</span>
+      </section>
+    {{/if}}
+
+    <section class="preflight-summary" aria-labelledby="summary-title">
+      <div class="section-heading preflight-heading">
+        <div>
+          <p class="section-kicker">Current local snapshot</p>
+          <h2 id="summary-title">Readiness at a glance</h2>
+        </div>
+        <p>Normal page loads inspect existing memory and local audit evidence only.</p>
+      </div>
+      <div class="preflight-check-grid">
+        <article>
+          <span>Merchant accounts</span>
+          <strong class="preflight-state {{catalogStatusClass}}">{{catalogStatusLabel}}</strong>
+          <p>{{activeAccountCount}} active of {{accountCount}} discovered</p>
+        </article>
+        <article>
+          <span>Policy overlay</span>
+          <strong class="preflight-state {{policyStatusClass}}">{{policyStatusLabel}}</strong>
+          <p>{{#if hasWarnings}}{{warnings.length}} warning{{#if (gt warnings.length 1)}}s{{/if}} need review{{else}}No catalog warnings{{/if}}</p>
+        </article>
+        <article>
+          <span>Payment methods</span>
+          <strong class="preflight-state {{methodStateClass}}">{{methodLabel}}</strong>
+          <p>Availability comes from the account policy matrix</p>
+        </article>
+        <article>
+          <span>Subscription plans</span>
+          <strong class="preflight-state {{planDiscoveryClass}}">{{planDiscoveryLabel}}</strong>
+          <p>{{planDiscoveryMessage}}</p>
+        </article>
+        <article>
+          <span>Webhook callback</span>
+          <strong class="preflight-state {{webhook.stateClass}}">{{webhook.label}}</strong>
+          <p>{{webhook.explanation}}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="preflight-section" aria-labelledby="discovery-title">
+      <div class="section-heading preflight-heading">
+        <div>
+          <p class="section-kicker">01 · Discovery</p>
+          <h2 id="discovery-title">Gateway catalog</h2>
+        </div>
+        <span class="preflight-state {{catalogStatusClass}}">{{catalogStatusLabel}}</span>
+      </div>
+      <dl class="preflight-metadata">
+        <div><dt>Gateway merchant</dt><dd><code>{{gatewayMerchantId}}</code></dd></div>
+        <div><dt>Last discovered</dt><dd>{{discoveredAtLabel}}</dd></div>
+        <div><dt>Discovery status</dt><dd>{{catalogStatus}}</dd></div>
+        <div><dt>Policy status</dt><dd>{{policyStatusLabel}}</dd></div>
+      </dl>
+      <p class="preflight-explanation">{{discoveryMessage}}</p>
+      {{#if hasWarnings}}
+        <div class="preflight-warnings" role="note" aria-label="Catalog warnings">
+          <strong>Review catalog warnings</strong>
+          <ul>
+            {{#each warnings}}<li><code>{{code}}</code><span>{{message}}</span></li>{{/each}}
+          </ul>
+        </div>
+      {{/if}}
+    </section>
+
+    <section class="preflight-section" aria-labelledby="accounts-title">
+      <div class="section-heading preflight-heading">
+        <div>
+          <p class="section-kicker">02 · Route matrix</p>
+          <h2 id="accounts-title">Accounts, methods, and authentication</h2>
+        </div>
+        <p>{{activeAccountCount}} active account{{#unless (eq activeAccountCount 1)}}s{{/unless}}</p>
+      </div>
+      {{#if hasAccounts}}
+        <div class="preflight-account-list">
+          {{#each accounts}}
+            <article class="preflight-account">
+              <div class="preflight-account-heading">
+                <div>
+                  <span>{{currency}}{{#if isDefault}} · Gateway default{{/if}}</span>
+                  <h3>{{label}}</h3>
+                  <code>{{merchantAccountId}}</code>
+                </div>
+                <strong class="preflight-state {{statusClass}}">{{statusLabel}}</strong>
+              </div>
+              <dl>
+                <div><dt>Routing roles</dt><dd class="{{routeClass}}">{{routeLabel}}</dd></div>
+                <div><dt>Payment methods</dt><dd class="{{methodClass}}">{{methodLabel}}</dd></div>
+                <div><dt>Card 3D Secure</dt><dd class="{{threeDSecureClass}}">{{threeDSecureLabel}}</dd></div>
+              </dl>
+            </article>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="preflight-empty">
+          <strong>No current account catalog.</strong>
+          <span>Use the explicit refresh control after checking Sandbox credentials and connectivity.</span>
+        </div>
+      {{/if}}
+    </section>
+
+    <section class="preflight-section" aria-labelledby="plans-title">
+      <div class="section-heading preflight-heading">
+        <div>
+          <p class="section-kicker">03 · Recurring readiness</p>
+          <h2 id="plans-title">Plan coverage</h2>
+        </div>
+        <span class="preflight-state {{planDiscoveryClass}}">{{planDiscoveryLabel}}</span>
+      </div>
+      <p class="preflight-explanation">{{planDiscoveryMessage}}</p>
+      {{#if hasPlanCoverage}}
+        <div class="preflight-plan-grid">
+          {{#each planCoverage}}
+            <article>
+              <div><strong>{{currency}}</strong><span class="preflight-state {{stateClass}}">{{planCountLabel}}</span></div>
+              {{#if available}}
+                <ul>{{#each planLabels}}<li>{{this}}</li>{{/each}}</ul>
+              {{else}}
+                <p>No discovered Braintree plan covers this recurring currency.</p>
+              {{/if}}
+            </article>
+          {{/each}}
+        </div>
+      {{/if}}
+    </section>
+
+    <section class="preflight-section" aria-labelledby="webhook-title">
+      <div class="section-heading preflight-heading">
+        <div>
+          <p class="section-kicker">04 · Asynchronous operations</p>
+          <h2 id="webhook-title">Webhook evidence</h2>
+        </div>
+        <span class="preflight-state {{webhook.stateClass}}">{{webhook.label}}</span>
+      </div>
+      <div class="preflight-webhook-boundary">
+        <strong>Reachability is never inferred.</strong>
+        <p>{{webhook.explanation}}</p>
+        <p>A historical signed notification proves only that the receiver worked at that time. It does not prove the current temporary tunnel or Control Panel configuration is live.</p>
+      </div>
+      {{#unless eventStoreAvailable}}
+        <div class="preflight-empty is-failed"><strong>Local webhook evidence is unavailable.</strong><span>The event store could not be read.</span></div>
+      {{else}}
+        {{#if latestWebhook}}
+          <article class="preflight-latest-webhook">
+            <div><span>Latest persisted notification</span><strong>{{latestWebhook.kindLabel}}</strong></div>
+            <dl>
+              <div><dt>Received</dt><dd>{{latestWebhook.timestampLabel}}</dd></div>
+              <div><dt>Receiver evidence</dt><dd class="{{latestWebhook.receiverClass}}">{{latestWebhook.receiverLabel}}</dd></div>
+              <div><dt>Local relationship</dt><dd class="{{latestWebhook.linkedClass}}">{{latestWebhook.linkedLabel}}</dd></div>
+            </dl>
+          </article>
+        {{else}}
+          <div class="preflight-empty"><strong>No persisted webhook evidence yet.</strong><span>Complete the documented Stage 4 receiver and tunnel review before presenting webhooks as live.</span></div>
+        {{/if}}
+      {{/unless}}
+    </section>
+
+    <aside class="preflight-boundary" role="note">
+      <strong>Read-only boundary</strong>
+      <span>This page can refresh merchant-account and plan discovery. It has no payment nonce inputs and exposes no transaction, customer, vault, subscription, dispute, or webhook mutation control.</span>
+    </aside>
+  </main>
+
+  <footer>
+    <p>PhonePal · Braintree routing demonstration</p>
+    <p>Stage 7 preflight / Sandbox only</p>
+  </footer>
+</body>
+</html>

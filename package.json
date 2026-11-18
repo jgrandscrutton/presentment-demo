@@ -6,8 +6,13 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test",
-    "verify:sandbox": "node scripts/verify-sandbox.js",
-    "verify:stage2:sandbox": "node scripts/verify-stage2-sandbox.js"
+    "webhook:receiver": "node webhook-server.js",
+    "verify:sandbox": "node scripts/verify-stage5-sandbox.js",
+    "verify:stage1:sandbox": "node scripts/verify-sandbox.js",
+    "verify:stage2:sandbox": "node scripts/verify-stage2-sandbox.js",
+    "verify:stage3:sandbox": "node scripts/verify-stage3-sandbox.js",
+    "verify:stage5:sandbox": "node scripts/verify-stage5-sandbox.js",
+    "verify:stage7:browser": "node scripts/verify-stage7-browser.js"
   },
   "keywords": [],
   "author": "",

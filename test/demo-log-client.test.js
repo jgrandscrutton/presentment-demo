@@ -18,6 +18,7 @@ class FakeElement {
     this.listeners = new Map();
     this.selectors = new Map();
     this.operationButtons = [];
+    this.attributes = new Map();
   }
 
   addEventListener(type, handler) {
@@ -25,7 +26,7 @@ class FakeElement {
   }
 
   dispatch(type) {
-    this.listeners.get(type)?.({ preventDefault() {} });
+    return this.listeners.get(type)?.({ preventDefault() {} });
   }
 
   querySelector(selector) {
@@ -34,6 +35,14 @@ class FakeElement {
 
   querySelectorAll(selector) {
     return selector === '[data-operation]' ? this.operationButtons : [];
+  }
+
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value));
+  }
+
+  removeAttribute(name) {
+    this.attributes.delete(name);
   }
 
   focus() {}
@@ -54,7 +63,7 @@ function tick() {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-function createLogClientHarness(actionOutcome) {
+function createLogClientHarness(actionOutcome, { confirmReset = true } = {}) {
   const entry = new FakeElement();
   entry.dataset.eventId = 'event-123';
   entry.dataset.operable = 'true';
@@ -79,10 +88,22 @@ function createLogClientHarness(actionOutcome) {
     entry.selectors.set(`[data-maximum-copy="${action}"]`, new FakeElement());
   }
 
+  const resetPanel = new FakeElement();
+  const resetButton = new FakeElement();
+  resetButton.dataset.resetEndpoint = '/demo/log/reset';
+  resetButton.dataset.resetConfirmation = 'clear-local-demo-events';
+  const resetStatus = new FakeElement();
+
   const calls = [];
+  const confirmations = [];
   let reloads = 0;
   async function fetch(url, options = {}) {
-    calls.push({ url, method: options.method || 'GET' });
+    calls.push({
+      url,
+      method: options.method || 'GET',
+      headers: structuredClone(options.headers || {}),
+      body: typeof options.body === 'string' ? JSON.parse(options.body) : null,
+    });
     if (url.endsWith('/status')) {
       return response(200, {
         success: true,
@@ -98,6 +119,28 @@ function createLogClientHarness(actionOutcome) {
           refund: { allowed: false },
         },
       });
+    }
+
+    if (url === '/demo/log/reset') {
+      if (actionOutcome === 'reset-success') {
+        return response(200, {
+          success: true,
+          clearedLocalEvents: 4,
+          braintreeObjectsChanged: false,
+        });
+      }
+      if (actionOutcome === 'reset-unreadable') {
+        return response(200, null, { readable: false });
+      }
+      if (actionOutcome === 'reset-error') {
+        return response(500, {
+          success: false,
+          error: {
+            message: 'Local demo history could not be cleared. Nothing in Braintree was changed.',
+          },
+        });
+      }
+      throw new Error('reset connection closed');
     }
 
     if (actionOutcome === 'transport-error') {
@@ -129,6 +172,12 @@ function createLogClientHarness(actionOutcome) {
   );
   vm.runInNewContext(source, {
     document: {
+      querySelector(selector) {
+        if (selector === '[data-local-reset]') return resetPanel;
+        if (selector === '[data-local-reset-button]') return resetButton;
+        if (selector === '#local-reset-status') return resetStatus;
+        return null;
+      },
       querySelectorAll(selector) {
         return selector === '.transaction-log-entry[data-operable="true"]'
           ? [entry]
@@ -137,6 +186,10 @@ function createLogClientHarness(actionOutcome) {
     },
     fetch,
     window: {
+      confirm(message) {
+        confirmations.push(message);
+        return confirmReset;
+      },
       location: {
         reload() {
           reloads += 1;
@@ -151,9 +204,13 @@ function createLogClientHarness(actionOutcome) {
   return {
     button,
     calls,
+    confirmations,
     controls,
     entry,
     noActions,
+    resetButton,
+    resetPanel,
+    resetStatus,
     status,
     get reloads() {
       return reloads;
@@ -166,6 +223,11 @@ function createLogClientHarness(actionOutcome) {
     },
     async act() {
       button.dispatch('click');
+      await tick();
+      await tick();
+    },
+    async reset() {
+      resetButton.dispatch('click');
       await tick();
       await tick();
     },
@@ -211,3 +273,57 @@ test('an explicitly retry-safe action validation failure re-enables the controls
   assert.match(harness.status.textContent, /valid amount/i);
   assert.equal(harness.reloads, 0);
 });
+
+test('local reset cancellation names the boundary and makes no request', async () => {
+  const harness = createLogClientHarness('reset-success', { confirmReset: false });
+
+  await harness.reset();
+
+  assert.equal(harness.calls.length, 0);
+  assert.equal(harness.reloads, 0);
+  assert.equal(harness.resetButton.disabled, false);
+  assert.equal(harness.confirmations.length, 1);
+  assert.match(
+    harness.confirmations[0],
+    /transactions, subscriptions, customers, payment methods, or disputes/i
+  );
+  assert.match(harness.resetStatus.textContent, /cancelled.*nothing changed/i);
+});
+
+test('confirmed local reset sends the exact guarded JSON request and reloads on success', async () => {
+  const harness = createLogClientHarness('reset-success');
+
+  await harness.reset();
+
+  assert.equal(harness.calls.length, 1);
+  assert.deepEqual(harness.calls[0], {
+    url: '/demo/log/reset',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Demo-Reset-Confirmation': 'clear-local-demo-events',
+    },
+    body: { scope: 'local_event_store' },
+  });
+  assert.equal(harness.reloads, 1);
+  assert.equal(harness.resetButton.disabled, true);
+  assert.equal(harness.resetPanel.attributes.has('aria-busy'), false);
+  assert.equal(harness.resetStatus.dataset.state, 'success');
+  assert.match(harness.resetStatus.textContent, /4 local events cleared/i);
+  assert.match(harness.resetStatus.textContent, /Braintree objects are unchanged/i);
+});
+
+for (const outcome of ['reset-error', 'reset-unreadable', 'reset-transport']) {
+  test(`${outcome} keeps the local reset retryable and never reloads`, async () => {
+    const harness = createLogClientHarness(outcome);
+
+    await harness.reset();
+
+    assert.equal(harness.calls.length, 1);
+    assert.equal(harness.reloads, 0);
+    assert.equal(harness.resetButton.disabled, false);
+    assert.equal(harness.resetPanel.attributes.has('aria-busy'), false);
+    assert.equal(harness.resetStatus.dataset.state, 'error');
+    assert.match(harness.resetStatus.textContent, /Nothing in Braintree was changed/i);
+  });
+}

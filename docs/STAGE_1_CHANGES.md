@@ -267,7 +267,7 @@ Those remain assigned to later stages. Under the current roadmap, Stage 2 begins
 
 ## Official Braintree documentation used
 
-Only official PayPal/Braintree developer documentation was used for the Braintree-specific implementation:
+Only official Braintree documentation hosted on PayPal Developer was used for the Braintree-specific implementation:
 
 - [Generate a client token — Node.js](https://developer.paypal.com/braintree/docs/reference/request/client-token/generate/node/) — passing the resolved `merchantAccountId` during token generation.
 - [Create a transaction with `transaction.sale` — Node.js](https://developer.paypal.com/braintree/docs/reference/request/transaction/sale/node/) — explicit merchant-account routing and `submitForSettlement`.

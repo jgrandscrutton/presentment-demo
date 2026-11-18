@@ -219,6 +219,9 @@ test('client tokens, one-time sale, and recurring sale use dynamic default-curre
   assert.equal(transaction.body.currency, 'JPY');
   assert.equal(demo.calls.sale[0].merchantAccountId, 'jpy-sales-route');
   assert.equal(demo.calls.sale[0].amount, '10');
+  assert.equal(demo.calls.sale[0].paymentMethodNonce, 'fake-jpy-nonce');
+  assert.equal(demo.calls.sale[0].paymentMethodToken, undefined);
+  assert.equal(demo.calls.sale[0].customerId, undefined);
 
   const subscription = await demo.post('/create-subscription', {
     nonce: 'fake-recurring-nonce',
@@ -235,6 +238,9 @@ test('client tokens, one-time sale, and recurring sale use dynamic default-curre
   assert.equal(subscription.body.currency, 'JPY');
   assert.equal(demo.calls.sale[1].merchantAccountId, 'jpy-recurring-route');
   assert.equal(demo.calls.sale[1].amount, '30');
+  assert.equal(demo.calls.sale[1].paymentMethodNonce, 'fake-recurring-nonce');
+  assert.equal(demo.calls.sale[1].paymentMethodToken, undefined);
+  assert.equal(demo.calls.sale[1].customerId, undefined);
 });
 
 test('invalid or merchant-account client-token intent is rejected before the gateway', async () => {

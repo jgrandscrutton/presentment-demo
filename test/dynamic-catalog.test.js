@@ -95,6 +95,201 @@ test('without an overlay deterministic auto-assignment uses one USD account for 
   assert.deepEqual(available.paymentTypes, []);
   assert.equal(available.roleSource, null);
   assert.equal(available.assignmentState, 'available_not_assigned');
+  assert.deepEqual(assigned.paymentMethods, ['card']);
+  assert.deepEqual(available.paymentMethods, ['card']);
+});
+
+test('payment methods default to card and explicitly enable only implemented alternatives', () => {
+  const catalog = buildMerchantAccountCatalog({
+    merchantId: 'method-merchant',
+    discoveredAccounts: [
+      discovered('method-account', 'USD', { isDefault: true }),
+      discovered('inactive-method-account', 'EUR', { status: 'suspended' }),
+    ],
+    policy: {
+      merchantId: 'method-merchant',
+      accounts: {
+        'method-account': {
+          label: 'Method account',
+          paymentTypes: ['one_time', 'recurring'],
+          paymentMethods: ['paypal', 'card', 'paypal', 'venmo', 'not-real'],
+        },
+        'inactive-method-account': {
+          label: 'Inactive method account',
+          paymentTypes: [],
+          paymentMethods: ['paypal'],
+        },
+      },
+    },
+  });
+
+  const active = catalog.accounts.find(
+    (account) => account.merchantAccountId === 'method-account'
+  );
+  const inactive = catalog.accounts.find(
+    (account) => account.merchantAccountId === 'inactive-method-account'
+  );
+  assert.deepEqual(active.paymentMethods, ['card', 'paypal']);
+  assert.deepEqual(inactive.paymentMethods, []);
+  assert.ok(Object.isFrozen(active.paymentMethods));
+  assert.ok(
+    catalog.warnings.some(
+      (item) => item.code === 'POLICY_PAYMENT_METHOD_NOT_IMPLEMENTED'
+    )
+  );
+  assert.ok(
+    catalog.warnings.some(
+      (item) => item.code === 'POLICY_PAYMENT_METHOD_UNSUPPORTED'
+    )
+  );
+});
+
+test('malformed payment methods fall back to card without discarding routing roles', () => {
+  const catalog = buildMerchantAccountCatalog({
+    merchantId: 'method-merchant',
+    discoveredAccounts: [
+      discovered('method-account', 'GBP', { isDefault: true }),
+    ],
+    policy: {
+      merchantId: 'method-merchant',
+      accounts: {
+        'method-account': {
+          label: 'Configured account',
+          paymentTypes: ['one_time', 'recurring'],
+          paymentMethods: 'paypal',
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(catalog.accounts[0].paymentTypes, ['one_time', 'recurring']);
+  assert.deepEqual(catalog.accounts[0].paymentMethods, ['card']);
+  assert.equal(catalog.accounts[0].label, 'Configured account');
+  assert.ok(
+    catalog.warnings.some(
+      (item) => item.code === 'POLICY_PAYMENT_METHODS_INVALID'
+    )
+  );
+});
+
+test('3D Secure defaults to required for EUR and optional elsewhere', () => {
+  const catalog = buildMerchantAccountCatalog({
+    merchantId: 'three-d-secure-defaults',
+    discoveredAccounts: [
+      discovered('eur-account', 'EUR'),
+      discovered('gbp-account', 'GBP', { isDefault: true }),
+    ],
+  });
+
+  assert.equal(
+    catalog.accounts.find((account) => account.currency === 'EUR').threeDSecurePolicy,
+    'required'
+  );
+  assert.equal(
+    catalog.accounts.find((account) => account.currency === 'GBP').threeDSecurePolicy,
+    'optional'
+  );
+});
+
+test('3D Secure policy permits explicit overrides and fails closed on invalid values', () => {
+  const catalog = buildMerchantAccountCatalog({
+    merchantId: 'three-d-secure-overrides',
+    discoveredAccounts: [
+      discovered('eur-account', 'EUR'),
+      discovered('gbp-account', 'GBP', { isDefault: true }),
+      discovered('usd-account', 'USD'),
+    ],
+    policy: {
+      merchantId: 'three-d-secure-overrides',
+      accounts: {
+        'eur-account': {
+          paymentTypes: ['one_time'],
+          threeDSecurePolicy: 'optional',
+        },
+        'gbp-account': {
+          paymentTypes: ['one_time', 'recurring'],
+          threeDSecurePolicy: ' REQUIRED ',
+        },
+        'usd-account': {
+          paymentTypes: ['one_time'],
+          threeDSecurePolicy: 'sometimes',
+        },
+      },
+    },
+  });
+
+  assert.equal(
+    catalog.accounts.find((account) => account.merchantAccountId === 'eur-account')
+      .threeDSecurePolicy,
+    'optional'
+  );
+  assert.equal(
+    catalog.accounts.find((account) => account.merchantAccountId === 'gbp-account')
+      .threeDSecurePolicy,
+    'required'
+  );
+  assert.equal(
+    catalog.accounts.find((account) => account.merchantAccountId === 'usd-account')
+      .threeDSecurePolicy,
+    'required'
+  );
+  assert.ok(
+    catalog.warnings.some((item) => item.code === 'POLICY_3DS_POLICY_INVALID')
+  );
+});
+
+test('3D Secure policy remains fail-closed when routing fields are malformed or rejected', () => {
+  const malformed = buildMerchantAccountCatalog({
+    merchantId: 'three-d-secure-malformed',
+    discoveredAccounts: [
+      discovered('gbp-account', 'GBP', { isDefault: true }),
+    ],
+    policy: {
+      merchantId: 'three-d-secure-malformed',
+      accounts: {
+        'gbp-account': {
+          paymentTypes: 'one_time',
+          threeDSecurePolicy: 'not-a-policy',
+        },
+      },
+    },
+  });
+  assert.equal(malformed.accounts[0].threeDSecurePolicy, 'required');
+  assert.ok(
+    malformed.warnings.some((item) => item.code === 'POLICY_3DS_POLICY_INVALID')
+  );
+
+  const duplicate = buildMerchantAccountCatalog({
+    merchantId: 'three-d-secure-duplicate',
+    discoveredAccounts: [
+      discovered('usd-a', 'USD', { isDefault: true }),
+      discovered('usd-b', 'USD'),
+    ],
+    policy: {
+      merchantId: 'three-d-secure-duplicate',
+      accounts: {
+        'usd-a': {
+          paymentTypes: ['one_time'],
+          threeDSecurePolicy: 'required',
+        },
+        'usd-b': {
+          paymentTypes: ['one_time'],
+          threeDSecurePolicy: 'optional',
+        },
+      },
+    },
+  });
+  assert.equal(duplicate.policyStatus, 'rejected');
+  assert.equal(
+    duplicate.accounts.find((account) => account.merchantAccountId === 'usd-a')
+      .threeDSecurePolicy,
+    'required'
+  );
+  assert.equal(
+    duplicate.accounts.find((account) => account.merchantAccountId === 'usd-b')
+      .threeDSecurePolicy,
+    'optional'
+  );
 });
 
 test('single-account gateways auto-assign both payment types and freeze the result', () => {

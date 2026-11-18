@@ -17,6 +17,8 @@ function account({
   id,
   currency,
   paymentTypes = [],
+  paymentMethods = ['card'],
+  threeDSecurePolicy = 'optional',
   sources = {},
   isDefault = false,
   assignmentState = paymentTypes.length > 0 ? 'assigned' : 'available_not_assigned',
@@ -28,6 +30,8 @@ function account({
     merchantAccountId: id,
     currency,
     paymentTypes,
+    paymentMethods,
+    threeDSecurePolicy,
     paymentTypeSources: sources,
     routingReasons: Object.fromEntries(
       paymentTypes.map((paymentType) => [paymentType, `Test ${paymentType} policy`])
@@ -49,6 +53,7 @@ const dynamicAccounts = Object.freeze([
     id: 'cad-primary',
     currency: 'CAD',
     paymentTypes: ['one_time', 'recurring'],
+    paymentMethods: ['card', 'paypal'],
     sources: { one_time: 'auto', recurring: 'auto' },
     isDefault: true,
   }),
@@ -75,6 +80,22 @@ function serviceWith({
   gatewayMerchantId = 'dynamic-gateway',
   error = null,
   warnings = [{ code: 'POLICY_NOTE', message: 'Test warning.' }],
+  plans = [
+    {
+      id: 'cad-monthly',
+      name: 'CAD Monthly',
+      description: 'Monthly sandbox plan',
+      currency: 'CAD',
+      price: '21.36',
+      billingFrequency: 1,
+      internalOnly: 'must-not-leak',
+    },
+  ],
+  planDiscovery = {
+    status: 'ok',
+    discoveredAt: '2026-10-15T09:30:00.000Z',
+    error: null,
+  },
 } = {}) {
   let accountReads = 0;
   const state = {
@@ -85,6 +106,8 @@ function serviceWith({
     warnings,
     policyStatus: status === 'ok' ? 'applied' : 'not_loaded',
     accounts,
+    plans,
+    planDiscovery,
   };
 
   return {
@@ -119,10 +142,12 @@ test('demo view model derives scenarios, currencies, precision, and assignments 
     model.scenarios.map((scenario) => scenario.id),
     [
       'cad-one-time',
+      'cad-recurring',
       'jpy-one-time',
       'jpy-recurring',
       'cad-processor-declined',
       'cad-gateway-rejected',
+      'cad-dispute',
       'chf-no-route',
     ]
   );
@@ -144,6 +169,36 @@ test('demo view model derives scenarios, currencies, precision, and assignments 
   assert.equal(cad.processorDeclinedAmount, '2001.00');
   assert.equal(cad.gatewayRejectedAmount, '5001.00');
 
+  assert.deepEqual(model.planOptions, [
+    {
+      id: 'cad-monthly',
+      name: 'CAD Monthly',
+      description: 'Monthly sandbox plan',
+      currency: 'CAD',
+      price: '21.36',
+      billingFrequency: 1,
+      label: 'CAD Monthly · 21.36 CAD · every 1 month',
+    },
+  ]);
+  assert.deepEqual(model.planAvailability, [
+    {
+      currency: 'CAD',
+      available: true,
+      planCount: 1,
+      message: '1 plan available',
+    },
+    {
+      currency: 'JPY',
+      available: false,
+      planCount: 0,
+      message: 'No plan available',
+    },
+  ]);
+  assert.equal(model.initialPlanId, 'cad-monthly');
+  assert.equal(model.planDiscoveryStatus, 'ok');
+  assert.equal(model.planDiscoveryMessage, 'Plans loaded from Braintree Sandbox.');
+  assert.equal(Object.hasOwn(model.planOptions[0], 'internalOnly'), false);
+
   const spare = model.accounts.find(
     (candidate) => candidate.merchantAccountId === 'jpy-spare'
   );
@@ -161,22 +216,120 @@ test('demo template presents dynamic discovery metadata, demo FX labels, and raw
     assert.match(html, new RegExp(`<code>${accountEntry.merchantAccountId}</code>`));
   }
 
-  assert.match(html, /Stage 2/);
+  assert.match(html, /Server-selected routing · Braintree Sandbox/);
+  assert.match(html, /id="payment-method-chooser"/);
+  assert.match(html, /name="paymentMethod" value="card"/);
+  assert.match(html, /name="paymentMethod" value="paypal"/);
+  assert.match(html, /id="paypal-button"/);
+  assert.match(html, /payment-method-paypal">PayPal</);
+  assert.match(html, /paypal-checkout\.min\.js/);
+  assert.match(html, /three-d-secure\.min\.js/);
+  assert.match(html, /id="three-d-secure-panel"/);
+  assert.match(html, /4000 0000 0000 2701/);
+  assert.match(html, /id="three-d-secure-proof"/);
+  assert.match(html, /id="three-d-secure-scope-proof"/);
+  assert.match(html, /Card 3DS policy/);
   assert.match(html, /dynamic-gateway/);
   assert.match(html, /2026-10-15T09:30:00\.000Z/);
   assert.match(html, /Fixed demo rates from GBP — not live FX/);
   assert.match(html, /data-step="1"/);
   assert.match(html, /data-processor-declined-amount="2001"/);
   assert.match(html, /data-gateway-rejected-amount="5001\.00"/);
+  assert.match(html, /data-dispute-scenario="true"/);
+  assert.match(html, /4023 8984 9398 8028/);
   assert.match(html, /id="transaction-mode"/);
   assert.match(html, /id="expected-outcome"/);
+  assert.match(html, /id="recurring-model"/);
+  assert.match(html, /value="merchant_managed"/);
+  assert.match(html, /value="braintree_subscription"/);
+  assert.match(html, /id="plan-id"/);
+  assert.match(html, /value="cad-monthly" data-currency="CAD"/);
+  assert.match(html, /No plan available/);
+  assert.match(html, /Braintree controls the billing schedule/);
+  assert.match(html, /run the next cycle immediately/);
+  assert.match(html, /id="run-next-cycle"/);
+  assert.match(html, /id="run-vault-one-time"/);
+  assert.match(html, /id="refresh-subscription"/);
+  assert.match(html, /id="cancel-subscription"/);
   assert.match(html, /href="\/demo\/log"/);
   assert.match(html, /Available · not assigned/);
   assert.match(html, /Merchant policy/);
-  assert.match(html, /Refresh from gateway/);
+  assert.match(html, /Refresh discovery/);
   assert.match(html, /POLICY_NOTE/);
   assert.doesNotMatch(html, /Sandbox connected/);
   assert.doesNotMatch(html, /clientToken|paymentMethodNonce/);
+  assert.doesNotMatch(html, /Preview only/);
+  assert.doesNotMatch(html, /must-not-leak/);
+});
+
+test('demo template keeps the routing workflow focused and keyboard discoverable', async () => {
+  const html = await render(buildDemoViewModel(serviceWith()));
+
+  assert.match(html, /<body class="routing-demo"/);
+  assert.match(
+    html,
+    /<body[^>]*>\s*<a class="skip-link" href="#runner">Skip to scenario runner<\/a>/
+  );
+  assert.match(html, /<h1 id="page-title">Route payments with clear proof\.<\/h1>/);
+  assert.match(html, /<h2 id="runner-title">Route a payment<\/h2>/);
+  assert.match(html, /<h3>Start with a preset<\/h3>/);
+  assert.match(html, /aria-current="page"[^>]*>Demo<\/a>/);
+  assert.match(html, /<h2 id="registry-title">Discovered accounts<\/h2>/);
+
+  assert.doesNotMatch(html, /class="proof-strip"/);
+  assert.doesNotMatch(html, /class="review-gate"/);
+});
+
+test('routing demo stylesheet exposes clean, accessible interaction contracts', () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, '..', 'public', 'stylesheets', 'demo.css'),
+    'utf8'
+  );
+
+  assert.match(css, /--color-primary:\s*#3b82f6;/);
+  assert.match(css, /--color-success:\s*#16a34a;/);
+  assert.match(css, /--color-danger:\s*#dc2626;/);
+  assert.match(css, /--space-1:\s*8px;/);
+  assert.match(css, /--font-primary:/);
+  assert.match(css, /--focus-ring:\s*#2563eb;/);
+  assert.match(css, /\.skip-link:focus(?:-visible)?\s*\{/);
+  assert.match(
+    css,
+    /\.routing-demo[\s\S]*?outline:\s*3px solid var\(--focus-ring\);/
+  );
+  assert.match(
+    css,
+    /\.routing-demo[\s\S]*?min-height:\s*(?:44|48)px;/
+  );
+  assert.match(
+    css,
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?scroll-behavior:\s*auto;/
+  );
+});
+
+test('plan discovery failure keeps Model A available and exposes only a safe message', () => {
+  const model = buildDemoViewModel(serviceWith({
+    plans: [],
+    planDiscovery: {
+      status: 'failed',
+      discoveredAt: null,
+      error: {
+        code: 'PLAN_DISCOVERY_FAILED',
+        message: 'Subscription plans could not be loaded.',
+        privateDetails: 'do not expose',
+      },
+    },
+  }));
+
+  assert.equal(model.catalogAvailable, true);
+  assert.equal(model.hasPlans, false);
+  assert.equal(model.planDiscoveryStatus, 'failed');
+  assert.equal(
+    model.planDiscoveryMessage,
+    'Subscription plans could not be loaded.'
+  );
+  assert.ok(model.scenarios.some((scenario) => scenario.paymentType === 'recurring'));
+  assert.doesNotMatch(JSON.stringify(model), /do not expose/);
 });
 
 test('failed discovery renders a safe unavailable state and never reads stale accounts', async () => {

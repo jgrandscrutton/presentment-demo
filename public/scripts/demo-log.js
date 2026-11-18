@@ -4,6 +4,12 @@
   const entries = [...document.querySelectorAll(
     '.transaction-log-entry[data-operable="true"]'
   )];
+  const resetPanel = document.querySelector('[data-local-reset]');
+  const resetButton = document.querySelector('[data-local-reset-button]');
+  const resetStatus = document.querySelector('#local-reset-status');
+  const RESET_CONFIRMATION_HEADER = 'X-Demo-Reset-Confirmation';
+  const RESET_SCOPE = 'local_event_store';
+  const RESET_NOTICE_KEY = 'phonepal.localResetNotice';
 
   async function requestJson(url, options) {
     const response = await fetch(url, options);
@@ -163,6 +169,93 @@
       );
     }
   }
+
+  function setResetStatus(message, state = '') {
+    if (!resetStatus) return;
+    resetStatus.textContent = message;
+    if (state) resetStatus.dataset.state = state;
+    else delete resetStatus.dataset.state;
+  }
+
+  try {
+    const resetNotice = window.sessionStorage?.getItem(RESET_NOTICE_KEY);
+    if (resetNotice) {
+      window.sessionStorage.removeItem(RESET_NOTICE_KEY);
+      setResetStatus(resetNotice, 'success');
+    }
+  } catch {
+    // Storage can be disabled; the pre-reload live message remains available.
+  }
+
+  async function resetLocalDemo() {
+    if (!resetButton || !resetPanel) return;
+    const confirmation = resetButton.dataset.resetConfirmation;
+    const endpoint = resetButton.dataset.resetEndpoint;
+    if (!confirmation || !endpoint) {
+      setResetStatus('Local reset is unavailable. Nothing changed.', 'error');
+      return;
+    }
+
+    const confirmed = typeof window.confirm === 'function' && window.confirm(
+      'Reset only this demo’s local audit history? This clears the visible event trail. It does not delete or change any Braintree transactions, subscriptions, customers, payment methods, or disputes.'
+    );
+    if (!confirmed) {
+      setResetStatus('Reset cancelled. Nothing changed.', 'neutral');
+      return;
+    }
+
+    resetButton.disabled = true;
+    resetPanel.setAttribute('aria-busy', 'true');
+    setResetStatus('Clearing local demo history…', 'busy');
+    try {
+      const { response, payload, readable } = await requestJson(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          [RESET_CONFIRMATION_HEADER]: confirmation,
+        },
+        body: JSON.stringify({ scope: RESET_SCOPE }),
+      });
+      if (!readable || !response.ok || payload.success !== true) {
+        const resetError = new Error(
+          readable && payload.error?.message
+            ? payload.error.message
+            : 'Local demo history could not be cleared. Nothing in Braintree was changed.'
+        );
+        resetError.safeResetMessage = true;
+        throw resetError;
+      }
+
+      const cleared = Number.isInteger(payload.clearedLocalEvents)
+        ? payload.clearedLocalEvents
+        : 0;
+      const successMessage =
+        `${cleared} local ${cleared === 1 ? 'event' : 'events'} cleared. Braintree objects are unchanged.`;
+      setResetStatus(`${successMessage} Reloading…`, 'success');
+      try {
+        window.sessionStorage?.setItem(RESET_NOTICE_KEY, successMessage);
+      } catch {
+        // The current aria-live message still names the completed boundary.
+      }
+      resetPanel.removeAttribute('aria-busy');
+      if (typeof window.setTimeout === 'function') {
+        window.setTimeout(() => window.location.reload(), 800);
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      resetPanel.removeAttribute('aria-busy');
+      resetButton.disabled = false;
+      setResetStatus(
+        error?.safeResetMessage
+          ? error.message
+          : 'Local demo history could not be cleared. Nothing in Braintree was changed.',
+        'error'
+      );
+    }
+  }
+
+  resetButton?.addEventListener('click', resetLocalDemo);
 
   for (const entry of entries) {
     for (const button of entry.querySelectorAll('[data-operation]')) {

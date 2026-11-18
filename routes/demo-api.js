@@ -17,7 +17,15 @@ const {
 const { buildDemoScenarios } = require('../lib/demo/scenarios');
 const eventStore = require('../lib/events/store');
 const { redact } = require('../lib/inspector/redact');
+const {
+  DEFAULT_PAYMENT_METHODS,
+  IMPLEMENTED_PAYMENT_METHODS,
+  normalizePaymentMethod,
+  paymentMethodFromInstrumentType,
+  paymentMethodFromNonce,
+} = require('../lib/payment-methods');
 const { resolveRoute } = require('../lib/routing/resolve-route');
+const { verifyThreeDSecure } = require('../lib/three-d-secure');
 
 const ALLOWED_PAYMENT_TYPES = new Set(['one_time', 'recurring']);
 const ALLOWED_TRANSACTION_MODES = new Set([
@@ -48,6 +56,12 @@ function normalizeTransactionMode(value) {
 
 function normalizeExpectedOutcome(value) {
   return normalizeDemoChoice(value, ALLOWED_EXPECTED_OUTCOMES, 'approved');
+}
+
+function normalizeRequestedPaymentMethod(value) {
+  if (value === undefined || value === null) return 'card';
+  if (typeof value === 'string' && value.trim() === '') return 'card';
+  return normalizePaymentMethod(value);
 }
 
 function normalizeScenarioId(value, catalog = []) {
@@ -97,21 +111,87 @@ function buildSafeRequest(body, decision, amount, catalog) {
     currency: intent.currency,
     paymentType: intent.paymentType,
     ...(amount ? { amount } : {}),
-    paymentMethod: 'card',
+    paymentMethod: normalizeRequestedPaymentMethod(body?.paymentMethod),
     transactionMode: normalizeTransactionMode(body?.transactionMode),
     expectedOutcome: normalizeExpectedOutcome(body?.expectedOutcome),
   });
+}
+
+function getPaymentMethodProblem(decision, paymentMethod) {
+  if (!paymentMethod || !IMPLEMENTED_PAYMENT_METHODS.has(paymentMethod)) {
+    return {
+      status: 400,
+      code: 'INVALID_PAYMENT_METHOD',
+      message: 'Choose Card or PayPal.',
+    };
+  }
+
+  if (!decision.matched) return null;
+  const allowedMethods = Array.isArray(decision.account?.paymentMethods)
+    ? decision.account.paymentMethods
+    : DEFAULT_PAYMENT_METHODS;
+  if (!allowedMethods.includes(paymentMethod)) {
+    return {
+      status: 422,
+      code: 'PAYMENT_METHOD_UNAVAILABLE',
+      message: `${paymentMethod === 'paypal' ? 'PayPal' : 'Card'} is not enabled on the selected route. Choose an available method or another routing intent.`,
+    };
+  }
+
+  return null;
+}
+
+function verifyTransactionCurrency(result, expectedCurrency) {
+  const actualCurrency = typeof result?.transaction?.currencyIsoCode === 'string'
+    ? result.transaction.currencyIsoCode.trim().toUpperCase()
+    : null;
+  const normalizedExpectedCurrency = typeof expectedCurrency === 'string'
+    ? expectedCurrency.trim().toUpperCase()
+    : null;
+  const passed = Boolean(
+    normalizedExpectedCurrency && actualCurrency === normalizedExpectedCurrency
+  );
+
+  return {
+    passed,
+    expectedCurrency: normalizedExpectedCurrency,
+    actualCurrency,
+    explanation: passed
+      ? 'Braintree returned the currency selected by the routing engine.'
+      : 'The currency returned by Braintree did not match the selected route.',
+  };
+}
+
+function verifyTransactionPaymentMethod(result, expectedPaymentMethod) {
+  const actualInstrumentType = typeof result?.transaction?.paymentInstrumentType === 'string'
+    ? result.transaction.paymentInstrumentType.trim().toLowerCase()
+    : null;
+  const actualPaymentMethod = paymentMethodFromInstrumentType(actualInstrumentType);
+  const passed = Boolean(
+    expectedPaymentMethod && actualPaymentMethod === expectedPaymentMethod
+  );
+
+  return {
+    passed,
+    expectedPaymentMethod,
+    actualPaymentMethod,
+    actualInstrumentType,
+    explanation: passed
+      ? 'Braintree returned the selected payment method.'
+      : 'The payment method returned by Braintree did not match the selected method.',
+  };
 }
 
 function appendRouteEvent(store, endpoint, safeRequest, decision) {
   const route = toPublicDecision(decision);
   return store.append({
     type: 'route_resolution',
-    stage: 2,
+    stage: route.intent.paymentType === 'recurring' ? 3 : 2,
     endpoint,
     scenarioId: safeRequest.scenarioId,
     intent: route.intent,
     resolvedMerchantAccountId: decision.account?.merchantAccountId ?? null,
+    threeDSecurePolicy: decision.account?.threeDSecurePolicy ?? null,
     paymentMethodType: safeRequest.paymentMethod,
     currency: route.intent.currency,
     transactionMode: safeRequest.transactionMode,
@@ -119,6 +199,35 @@ function appendRouteEvent(store, endpoint, safeRequest, decision) {
     request: safeRequest,
     outcome: decision.matched ? 'matched' : 'no_route',
     route,
+  });
+}
+
+function appendThreeDSecureBlockedEvent(
+  store,
+  endpoint,
+  safeRequest,
+  decision,
+  verification
+) {
+  return store.append({
+    type: 'three_d_secure',
+    stage: 6,
+    endpoint,
+    scenarioId: safeRequest.scenarioId,
+    intent: toPublicDecision(decision).intent,
+    resolvedMerchantAccountId: decision.account.merchantAccountId,
+    verified: false,
+    paymentMethodType: safeRequest.paymentMethod,
+    threeDSecurePolicy: verification.policy,
+    threeDSecureStatus: verification.status,
+    liabilityShiftPossible: verification.liabilityShiftPossible,
+    liabilityShifted: verification.liabilityShifted,
+    amount: safeRequest.amount ?? null,
+    currency: decision.intent.currency,
+    outcome: 'blocked',
+    request: safeRequest,
+    route: toPublicDecision(decision),
+    threeDSecureVerification: verification,
   });
 }
 
@@ -246,6 +355,23 @@ function createDemoApiRouter({
       const decision = resolveRequest(req.body, accounts);
       const safeRequest = buildSafeRequest(req.body, decision, undefined, accounts);
       const event = appendRouteEvent(store, 'route-preview', safeRequest, decision);
+      const paymentMethodProblem = getPaymentMethodProblem(
+        decision,
+        safeRequest.paymentMethod
+      );
+      if (paymentMethodProblem) {
+        return sendProblem(
+          res,
+          paymentMethodProblem.status,
+          paymentMethodProblem.code,
+          paymentMethodProblem.message,
+          {
+            request: safeRequest,
+            route: toPublicDecision(decision),
+            auditEventId: event.id,
+          }
+        );
+      }
       return res.json({
         success: true,
         request: safeRequest,
@@ -280,7 +406,12 @@ function createDemoApiRouter({
         503,
         'AUDIT_PERSISTENCE_FAILED',
         'The route was resolved, but its local audit event could not be saved. No client authorization was requested.',
-        { request: safeRequest, route: toPublicDecision(decision), audit: { persisted: false } }
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          audit: { persisted: false },
+          retrySafe: true,
+        }
       );
     }
 
@@ -293,16 +424,23 @@ function createDemoApiRouter({
         route: toPublicDecision(decision),
       });
     }
-    if (decision.intent.paymentType !== 'one_time') {
+    const paymentMethodProblem = getPaymentMethodProblem(
+      decision,
+      safeRequest.paymentMethod
+    );
+    if (paymentMethodProblem) {
       return sendProblem(
         res,
-        409,
-        'STAGE_3_REQUIRED',
-        'Recurring checkout is preview-only until vaulted payments are added in Stage 3.',
-        { request: safeRequest, route: toPublicDecision(decision) }
+        paymentMethodProblem.status,
+        paymentMethodProblem.code,
+        paymentMethodProblem.message,
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          retrySafe: true,
+        }
       );
     }
-
     try {
       const clientToken = await gateway().generateClientToken({
         merchantAccountId: decision.account.merchantAccountId,
@@ -367,7 +505,12 @@ function createDemoApiRouter({
         503,
         'AUDIT_PERSISTENCE_FAILED',
         'The route was resolved, but its local audit event could not be saved. No payment was requested.',
-        { request: safeRequest, route: toPublicDecision(decision), audit: { persisted: false } }
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          audit: { persisted: false },
+          retrySafe: true,
+        }
       );
     }
 
@@ -380,7 +523,11 @@ function createDemoApiRouter({
         400,
         'INVALID_TRANSACTION_MODE',
         'Choose Sale or Authorize only.',
-        { request: safeRequest, route: toPublicDecision(decision) }
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          retrySafe: true,
+        }
       );
     }
     if (!safeRequest.expectedOutcome) {
@@ -404,6 +551,19 @@ function createDemoApiRouter({
         route: toPublicDecision(decision),
       });
     }
+    const paymentMethodProblem = getPaymentMethodProblem(
+      decision,
+      safeRequest.paymentMethod
+    );
+    if (paymentMethodProblem) {
+      return sendProblem(
+        res,
+        paymentMethodProblem.status,
+        paymentMethodProblem.code,
+        paymentMethodProblem.message,
+        { request: safeRequest, route: toPublicDecision(decision) }
+      );
+    }
     if (!amount) {
       return sendProblem(
         res,
@@ -421,8 +581,98 @@ function createDemoApiRouter({
         res,
         400,
         'PAYMENT_METHOD_REQUIRED',
-        'Tokenize the sandbox card before running the payment.',
+        'Choose and authorize a Sandbox payment method before running the payment.',
         { request: safeRequest, route: toPublicDecision(decision) }
+      );
+    }
+
+    let nonceDetails;
+    try {
+      nonceDetails = await gateway().inspectPaymentMethodNonce({
+        paymentMethodNonce: req.body.paymentMethodNonce,
+      });
+    } catch (error) {
+      const nonceNotFound = error?.name === 'notFoundError';
+      return sendProblem(
+        res,
+        nonceNotFound ? 400 : 502,
+        nonceNotFound
+          ? 'PAYMENT_METHOD_INVALID'
+          : 'PAYMENT_METHOD_INSPECTION_FAILED',
+        nonceNotFound
+          ? 'The authorized Sandbox payment method is invalid or expired. Authorize it again before retrying.'
+          : 'Braintree could not verify the authorized payment method. No transaction was requested; try again when Sandbox is available.',
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          retrySafe: true,
+        }
+      );
+    }
+
+    const noncePaymentMethod = paymentMethodFromNonce(nonceDetails);
+    if (noncePaymentMethod !== safeRequest.paymentMethod) {
+      return sendProblem(
+        res,
+        422,
+        'PAYMENT_METHOD_MISMATCH',
+        noncePaymentMethod
+          ? 'The authorized payment method does not match the selected method. Authorize the selected method again.'
+          : 'Braintree could not prove the authorized payment method type. Authorize the selected method again.',
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          paymentMethodVerification: {
+            passed: false,
+            expectedPaymentMethod: safeRequest.paymentMethod,
+            actualPaymentMethod: noncePaymentMethod,
+          },
+          retrySafe: true,
+        }
+      );
+    }
+
+    const nonceThreeDSecureVerification = verifyThreeDSecure({
+      source: nonceDetails,
+      policy: decision.account.threeDSecurePolicy,
+      paymentMethod: safeRequest.paymentMethod,
+    });
+    if (!nonceThreeDSecureVerification.passed) {
+      const missingAuthentication = !nonceThreeDSecureVerification.performed;
+      let auditEventId = null;
+      let audit = { persisted: true };
+      try {
+        auditEventId = appendThreeDSecureBlockedEvent(
+          store,
+          'payments/one-time',
+          safeRequest,
+          decision,
+          nonceThreeDSecureVerification
+        ).id;
+      } catch (error) {
+        logger.error('Stage 6 3D Secure audit persistence error:', error?.name ?? 'Error');
+        audit = {
+          persisted: false,
+          warning: 'The card remained blocked, but its 3D Secure audit event could not be saved.',
+        };
+      }
+      return sendProblem(
+        res,
+        422,
+        missingAuthentication
+          ? 'THREE_D_SECURE_REQUIRED'
+          : 'THREE_D_SECURE_AUTHENTICATION_FAILED',
+        missingAuthentication
+          ? 'This route requires 3D Secure. Authenticate the card before retrying; no transaction was requested.'
+          : '3D Secure did not produce the liability shift required by this route. Use a successful Sandbox authentication before retrying; no transaction was requested.',
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          threeDSecureVerification: nonceThreeDSecureVerification,
+          auditEventId,
+          audit,
+          retrySafe: true,
+        }
       );
     }
 
@@ -438,6 +688,9 @@ function createDemoApiRouter({
         paymentMethodNonce: req.body.paymentMethodNonce,
         orderId,
         submitForSettlement: safeRequest.transactionMode === 'submit_for_settlement',
+        ...(safeRequest.paymentMethod === 'card'
+          ? { threeDSecureRequired: nonceThreeDSecureVerification.required }
+          : {}),
       });
     } catch (error) {
       if (isLocallyBlockedGatewayError(error)) {
@@ -446,7 +699,11 @@ function createDemoApiRouter({
           503,
           'CATALOG_UNAVAILABLE',
           'The selected merchant account is no longer active in the current discovery result. No Braintree transaction was requested.',
-          { request: safeRequest, route: toPublicDecision(decision) }
+          {
+            request: safeRequest,
+            route: toPublicDecision(decision),
+            retrySafe: true,
+          }
         );
       }
 
@@ -461,6 +718,11 @@ function createDemoApiRouter({
           intent: toPublicDecision(decision).intent,
           resolvedMerchantAccountId: decision.account.merchantAccountId,
           paymentMethodType: safeRequest.paymentMethod,
+          threeDSecurePolicy: nonceThreeDSecureVerification.policy,
+          threeDSecureStatus: nonceThreeDSecureVerification.status,
+          liabilityShiftPossible:
+            nonceThreeDSecureVerification.liabilityShiftPossible,
+          liabilityShifted: nonceThreeDSecureVerification.liabilityShifted,
           amount,
           currency: decision.intent.currency,
           transactionMode: safeRequest.transactionMode,
@@ -469,6 +731,7 @@ function createDemoApiRouter({
           request: safeRequest,
           outcome: 'gateway_error',
           route: toPublicDecision(decision),
+          threeDSecureVerification: nonceThreeDSecureVerification,
           error: { name: error?.name ?? 'Error', code: error?.code ?? null },
         });
         auditEventId = event.id;
@@ -485,12 +748,32 @@ function createDemoApiRouter({
         502,
         'BRAINTREE_REQUEST_FAILED',
         'Braintree did not return a usable result. Check the Sandbox Control Panel before retrying.',
-        { request: safeRequest, route: toPublicDecision(decision), auditEventId, audit }
+        {
+          request: safeRequest,
+          route: toPublicDecision(decision),
+          threeDSecureVerification: nonceThreeDSecureVerification,
+          auditEventId,
+          audit,
+          retrySafe: false,
+        }
       );
     }
 
     const braintreeResult = summarizeGatewayResult(result);
     const verification = verifyMerchantAccount(result, decision.account.merchantAccountId);
+    const currencyVerification = verifyTransactionCurrency(
+      result,
+      decision.intent.currency
+    );
+    const paymentMethodVerification = verifyTransactionPaymentMethod(
+      result,
+      safeRequest.paymentMethod
+    );
+    const threeDSecureVerification = verifyThreeDSecure({
+      source: result?.transaction?.threeDSecureInfo,
+      policy: decision.account.threeDSecurePolicy,
+      paymentMethod: safeRequest.paymentMethod,
+    });
     const transactionId = result?.transaction?.id ?? null;
     const transactionStatus = result?.transaction?.status ?? null;
     const actualOutcome = detectGatewayOutcome(result);
@@ -500,8 +783,20 @@ function createDemoApiRouter({
       matched: safeRequest.expectedOutcome === actualOutcome,
     };
     const paymentApproved = result?.success === true;
-    const routeVerified = result?.transaction ? verification.passed : false;
-    const observationSucceeded = demoOutcome.matched && routeVerified;
+    const routeVerified = result?.transaction
+      ? verification.passed && currencyVerification.passed
+      : false;
+    const paymentMethodVerified = result?.transaction
+      ? paymentMethodVerification.passed
+      : false;
+    const threeDSecureVerified = result?.transaction
+      ? threeDSecureVerification.passed
+      : false;
+    const observationSucceeded =
+      demoOutcome.matched &&
+      routeVerified &&
+      paymentMethodVerified &&
+      threeDSecureVerified;
     const controlPanelUrl = buildSandboxTransactionUrl(merchantId, transactionId);
     let auditEventId = null;
     let audit = { persisted: true };
@@ -515,8 +810,13 @@ function createDemoApiRouter({
         intent: toPublicDecision(decision).intent,
         resolvedMerchantAccountId: decision.account.merchantAccountId,
         responseMerchantAccountId: result?.transaction?.merchantAccountId ?? null,
-        verified: verification.passed,
-        paymentMethodType: result?.transaction?.paymentInstrumentType ?? safeRequest.paymentMethod,
+        verified: routeVerified && paymentMethodVerified && threeDSecureVerified,
+        paymentMethodType: safeRequest.paymentMethod,
+        responsePaymentInstrumentType: paymentMethodVerification.actualInstrumentType,
+        threeDSecurePolicy: threeDSecureVerification.policy,
+        threeDSecureStatus: threeDSecureVerification.status,
+        liabilityShiftPossible: threeDSecureVerification.liabilityShiftPossible,
+        liabilityShifted: threeDSecureVerification.liabilityShifted,
         amount,
         currency: result?.transaction?.currencyIsoCode ?? decision.intent.currency,
         braintreeId: transactionId,
@@ -532,11 +832,16 @@ function createDemoApiRouter({
               ? 'authorized'
               : 'succeeded'
             : `expected_${actualOutcome}`
-          : result?.transaction && !verification.passed
+          : result?.transaction && (
+              !routeVerified || !paymentMethodVerified || !threeDSecureVerified
+            )
             ? 'failed'
             : `unexpected_${actualOutcome}`,
         route: toPublicDecision(decision),
         verification,
+        currencyVerification,
+        paymentMethodVerification,
+        threeDSecureVerification,
         demoOutcome,
         braintreeResult,
       });
@@ -557,18 +862,40 @@ function createDemoApiRouter({
       route: toPublicDecision(decision),
       braintreeResult,
       verification,
+      currencyVerification,
+      paymentMethodVerification,
+      threeDSecureVerification,
       demoOutcome,
       transactionStatus,
       controlPanelUrl,
       auditEventId,
       audit,
+      retrySafe: false,
     };
-    if (result?.transaction && !verification.passed) {
+    if (result?.transaction && !routeVerified) {
       return sendProblem(
         res,
         502,
         'ROUTE_VERIFICATION_FAILED',
-        'Braintree returned a transaction on a different merchant account. Do not retry; inspect the returned transaction in the Sandbox Control Panel, then start a fresh route preview before any new attempt.',
+        'Braintree returned a transaction on a different merchant account or currency. Do not retry; inspect the returned transaction in the Sandbox Control Panel, then start a fresh route preview before any new attempt.',
+        payload
+      );
+    }
+    if (result?.transaction && !paymentMethodVerified) {
+      return sendProblem(
+        res,
+        502,
+        'PAYMENT_METHOD_VERIFICATION_FAILED',
+        'Braintree returned a transaction with a different or unverified payment method. Do not retry; inspect the returned transaction in the Sandbox Control Panel.',
+        payload
+      );
+    }
+    if (result?.transaction && !threeDSecureVerified) {
+      return sendProblem(
+        res,
+        502,
+        'THREE_D_SECURE_VERIFICATION_FAILED',
+        'Braintree returned a transaction without the 3D Secure proof required by this route. Do not retry; inspect the returned transaction in the Sandbox Control Panel.',
         payload
       );
     }

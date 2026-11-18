@@ -88,7 +88,7 @@ function getStorefrontRoutes(service) {
   return { currency: defaultAccount.currency, oneTime, recurring };
 }
 
-function appendLegacyRouteEvent(store, route, scenarioId, endpoint) {
+function appendStorefrontRouteEvent(store, route, scenarioId, endpoint) {
   return store.append({
     type: 'route_resolution',
     stage: 1.5,
@@ -103,7 +103,7 @@ function appendLegacyRouteEvent(store, route, scenarioId, endpoint) {
   });
 }
 
-async function executeLegacySale({
+async function executeBraintreeStorefrontSale({
   gateway,
   store,
   route,
@@ -120,7 +120,7 @@ async function executeLegacySale({
     amount,
     paymentMethod: 'paypal',
   };
-  appendLegacyRouteEvent(store, route, scenarioId, 'legacy-sale');
+  appendStorefrontRouteEvent(store, route, scenarioId, 'storefront-sale');
 
   let result;
   try {
@@ -256,7 +256,7 @@ function createApiRouter({
     const route = paymentType === 'recurring' ? routes.recurring : routes.oneTime;
 
     try {
-      appendLegacyRouteEvent(
+      appendStorefrontRouteEvent(
         store,
         route,
         `storefront-${paymentType}-client-token`,
@@ -335,7 +335,7 @@ function createApiRouter({
     if (!amount) return sendProblem(res, 400, 'INVALID_AMOUNT', 'The payment amount is invalid for the storefront currency.');
 
     try {
-      const sale = await executeLegacySale({
+      const sale = await executeBraintreeStorefrontSale({
         gateway: gateway(),
         store,
         route: routes.oneTime,
@@ -393,7 +393,7 @@ function createApiRouter({
     if (!amount) return sendProblem(res, 400, 'INVALID_AMOUNT', 'The billing amount is invalid for the storefront currency.');
 
     try {
-      const sale = await executeLegacySale({
+      const sale = await executeBraintreeStorefrontSale({
         gateway: gateway(),
         store,
         route: routes.recurring,

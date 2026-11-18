@@ -13,10 +13,10 @@ function initializePayment(billingData) {
     .then(planData => {
         billingData.planDetails = planData.planDetails;
         console.log('Plan data received:', planData);
-        return setupPayPalButton(billingData);
+        return setupBraintreePayPalButton(billingData);
     })
     .catch(() => {
-        console.error('Error creating billing plan');
+        console.error('Error preparing Braintree PayPal Checkout billing details');
     });
 }
 
@@ -37,7 +37,7 @@ function canonicalAmount(value) {
     return String(value);
 }
 
-function setupPayPalButton(billingData) {
+function setupBraintreePayPalButton(billingData) {
     fetch('/api/client-token?paymentType=recurring')
         .then(response => response.text())
         .then(clientToken => {
@@ -111,13 +111,13 @@ function setupPayPalButton(billingData) {
                 },
                 
                 onError: function() {
-                    console.error('PayPal error');
+                    console.error('Braintree PayPal Checkout error');
                     alert('An error occurred. Check console for details.');
                 }
             }).render('#paypal-button-container');
         })
         .catch(() => {
-            console.error('Error setting up PayPal');
+            console.error('Error setting up Braintree PayPal Checkout');
         });
 }
 
@@ -282,8 +282,8 @@ function buildPaymentOptions(billingData) {
     return options;
 }
 
-// One-time payment function for PayPal Checkout
-// Create one Braintree client + PayPal Checkout instance per storefront currency.
+// One-time payment function for Braintree PayPal Checkout.
+// Create one Braintree client + Braintree PayPal Checkout instance per storefront currency.
 const oneTimeCheckoutPromises = new Map();
 
 function getOneTimeCheckout(currency) {
@@ -354,16 +354,16 @@ function oneTimePayment(billingData) {
                 },
 
                 onError: function() {
-                    console.error('PayPal error');
+                    console.error('Braintree PayPal Checkout error');
                     alert('An error occurred. Check console for details.');
                 }
             }).render('#' + billingData.containerId);
         })
         .catch(() => {
-            console.error('Error setting up one-time PayPal button');
+            console.error('Error setting up one-time Braintree PayPal Checkout button');
             const el = document.getElementById(billingData.containerId);
             if (el) {
-                el.innerHTML = '<p style="color:#b00020;font-size:0.85rem">PayPal button failed to load.</p>';
+                el.innerHTML = '<p style="color:#b00020;font-size:0.85rem">Braintree PayPal Checkout button failed to load.</p>';
             }
         });
 }

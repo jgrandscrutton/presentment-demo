@@ -1,5 +1,5 @@
 <div id="demo-container">
-  <h2>PayPal Recurring Billing Demo</h2>
+  <h2>Braintree PayPal Checkout Billing Demo</h2>
   
   <label>Select Billing Type:</label>
   <select id="billing-type">
@@ -15,7 +15,7 @@
     <!-- Dynamic fields will appear here based on selection -->
   </div>
 
-  <button id="continue-btn" style="display: none; margin-top: 20px;">Continue to PayPal</button>
+  <button id="continue-btn" style="display: none; margin-top: 20px;">Continue with PayPal via Braintree</button>
 
   <div id="paypal-button-container" style="margin-top: 20px;"></div>
 </div>
@@ -139,7 +139,7 @@
     detailsDiv.innerHTML = getFieldsForBillingType(billingType);
     continueBtn.style.display = 'block';
     
-    // Hide PayPal button until continue is clicked
+    // Hide the Braintree PayPal Checkout button until continue is clicked.
     document.getElementById('paypal-button-container').innerHTML = '';
     paypalButtonRendered = false;
     });
@@ -157,9 +157,9 @@
     currentBillingData = billingData;
     console.log('Billing data:', billingData); // For debugging
     
-    // Render PayPal button with this data
+    // Render the PayPal payment method through Braintree PayPal Checkout.
     if (!paypalButtonRendered) {
-        renderPayPalButton(billingData);
+        renderBraintreePayPalButton(billingData);
         paypalButtonRendered = true;
     }
     });
@@ -219,8 +219,8 @@
         return data;
     }
 
-    function renderPayPalButton(billingData) {
-        document.getElementById('paypal-button-container').innerHTML = '<p>Loading PayPal...</p>';
+    function renderBraintreePayPalButton(billingData) {
+        document.getElementById('paypal-button-container').innerHTML = '<p>Loading Braintree PayPal Checkout...</p>';
         
         // First, create the billing plan on the server
         fetch('/api/create-billing-plan', {
@@ -240,8 +240,8 @@
             
             console.log('Updated currentBillingData:', currentBillingData);
             
-            // Now set up PayPal button
-            return setupPayPalButton(planData);
+            // Now set up the PayPal payment method through Braintree.
+            return setupBraintreePayPalButton(planData);
         })
         .catch(err => {
             console.error('Error creating billing plan:', err);
@@ -249,7 +249,7 @@
         });
     }
 
-    function setupPayPalButton(planData) {
+    function setupBraintreePayPalButton(planData) {
         document.getElementById('paypal-button-container').innerHTML = '';
         
         // Your existing Braintree setup code here...
@@ -315,13 +315,13 @@
                     },
                 
                 onError: function(err) {
-                    console.error('PayPal error');
+                    console.error('Braintree PayPal Checkout error');
                     alert('An error occurred. Check console for details.');
                 }
             }).render('#paypal-button-container');
         })
         .catch(err => {
-            console.error('Error setting up PayPal');
+            console.error('Error setting up Braintree PayPal Checkout');
         });
     }
 

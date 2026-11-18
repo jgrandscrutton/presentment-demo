@@ -53,6 +53,12 @@ function createFailedCatalogService({ merchantId, message }) {
     warnings: Object.freeze([]),
     policyStatus: 'not_loaded',
     accounts: Object.freeze([]),
+    planDiscovery: Object.freeze({
+      status: 'not_run',
+      discoveredAt: null,
+      error: null,
+    }),
+    plans: Object.freeze([]),
   });
   const unavailable = () => {
     throw new CatalogUnavailableError(message);
@@ -68,6 +74,10 @@ function createFailedCatalogService({ merchantId, message }) {
     getDefaultMerchantAccount: unavailable,
     hasMerchantAccountId: unavailable,
     assertMerchantAccountId: unavailable,
+    getPlans: unavailable,
+    getPlansForCurrency: unavailable,
+    getPlanById: unavailable,
+    assertPlanForRoute: unavailable,
   });
 }
 

@@ -53,6 +53,8 @@ test('catalog schema permits unassigned accounts but rejects duplicate active ro
     merchantAccountId: 'default-account',
     currency: 'GBP',
     paymentTypes: ['one_time', 'recurring'],
+    paymentMethods: ['card'],
+    threeDSecurePolicy: 'optional',
     purpose: 'Automatically assigned.',
     environment: 'sandbox',
     status: 'active',
@@ -77,7 +79,32 @@ test('catalog schema permits unassigned accounts but rejects duplicate active ro
     /Duplicate active routing target/
   );
   assert.throws(
-    () => validateMerchantAccounts([{ ...base, status: 'suspended' }]),
+    () => validateMerchantAccounts([{
+      ...base,
+      status: 'suspended',
+      paymentMethods: [],
+    }]),
     /default account must be active/
+  );
+  assert.throws(
+    () => validateMerchantAccounts([{ ...base, paymentMethods: ['paypal'] }]),
+    /must include "card"/
+  );
+  assert.throws(
+    () => validateMerchantAccounts([{
+      ...base,
+      paymentMethods: ['card', 'venmo'],
+    }]),
+    /unsupported method "venmo"/
+  );
+  assert.throws(
+    () => validateMerchantAccounts([{ ...base, threeDSecurePolicy: 'sometimes' }]),
+    /threeDSecurePolicy must be "required" or "optional"/
+  );
+  const missingThreeDSecurePolicy = { ...base };
+  delete missingThreeDSecurePolicy.threeDSecurePolicy;
+  assert.throws(
+    () => validateMerchantAccounts([missingThreeDSecurePolicy]),
+    /missing required field "threeDSecurePolicy"/
   );
 });

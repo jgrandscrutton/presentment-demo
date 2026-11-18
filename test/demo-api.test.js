@@ -9,7 +9,12 @@ function createAccount(
   merchantAccountId,
   currency,
   paymentTypes,
-  { isDefault = false, status = 'active' } = {}
+  {
+    isDefault = false,
+    status = 'active',
+    paymentMethods = ['card'],
+    threeDSecurePolicy = 'optional',
+  } = {}
 ) {
   return {
     key: merchantAccountId,
@@ -17,6 +22,8 @@ function createAccount(
     merchantAccountId,
     currency,
     paymentTypes: [...paymentTypes],
+    paymentMethods: status === 'active' ? [...paymentMethods] : [],
+    threeDSecurePolicy,
     paymentTypeSources: Object.fromEntries(
       paymentTypes.map((paymentType) => [paymentType, 'policy'])
     ),
@@ -173,6 +180,8 @@ function invokePost(router, path, body) {
 
 function createHarness({
   saleResult,
+  nonceDetails = { details: { cardType: 'Visa', lastTwo: '11' } },
+  nonceError,
   tokenError,
   store: storeOverride,
   catalogService = createFakeCatalogService(),
@@ -181,6 +190,10 @@ function createHarness({
     clientToken: [],
     sale: [],
   };
+  Object.defineProperty(calls, 'nonceInspection', {
+    value: [],
+    enumerable: false,
+  });
   const store = storeOverride || createFakeStore();
   const gatewayClient = {
     async generateClientToken(request) {
@@ -195,6 +208,13 @@ function createHarness({
       return typeof saleResult === 'function'
         ? saleResult(request)
         : saleResult;
+    },
+    async inspectPaymentMethodNonce(request) {
+      calls.nonceInspection.push(structuredClone(request));
+      if (nonceError) throw nonceError;
+      return typeof nonceDetails === 'function'
+        ? nonceDetails(request)
+        : structuredClone(nonceDetails);
     },
   };
   const router = createDemoApiRouter({
@@ -430,7 +450,7 @@ test('route preview replaces untrusted scenario identifiers instead of echoing o
   });
 });
 
-test('client token generation uses the routed account and keeps recurring checkout preview-only', async () => {
+test('client token generation uses the routed account for one-time and recurring checkout', async () => {
   await withHarness({}, async ({ post, calls, store }) => {
     const oneTime = await post('/client-token', {
       scenarioId: 'eur-one-time',
@@ -454,12 +474,14 @@ test('client token generation uses the routed account and keeps recurring checko
       paymentType: 'recurring',
     });
 
-    assert.equal(recurring.status, 409);
-    assert.equal(recurring.body.success, false);
-    assert.equal(recurring.body.error.code, 'STAGE_3_REQUIRED');
+    assert.equal(recurring.status, 200);
+    assert.equal(recurring.body.success, true);
     assert.equal(recurring.body.route.account.merchantAccountId, 'account-usd-recurring');
-    assert.match(recurring.body.error.message, /preview-only.*Stage 3/i);
-    assert.deepEqual(calls.clientToken, [{ merchantAccountId: 'account-eur' }]);
+    assert.equal(recurring.body.clientToken, 'server-generated-client-token');
+    assert.deepEqual(calls.clientToken, [
+      { merchantAccountId: 'account-eur' },
+      { merchantAccountId: 'account-usd-recurring' },
+    ]);
 
     const unsupported = await post('/client-token', {
       scenarioId: 'jpy-client-token-attempt',
@@ -471,9 +493,58 @@ test('client token generation uses the routed account and keeps recurring checko
     assert.equal(unsupported.status, 422);
     assert.equal(unsupported.body.error.code, 'NO_ROUTE');
     assert.equal(unsupported.body.route.matched, false);
-    assert.deepEqual(calls.clientToken, [{ merchantAccountId: 'account-eur' }]);
+    assert.deepEqual(calls.clientToken, [
+      { merchantAccountId: 'account-eur' },
+      { merchantAccountId: 'account-usd-recurring' },
+    ]);
     assert.deepEqual(calls.sale, []);
     assert.equal(store.events.length, 3);
+  });
+});
+
+test('payment method availability is enforced after routing without changing the selected account', async () => {
+  const paypalAccounts = DEFAULT_ACCOUNTS.map((account) => ({
+    ...structuredClone(account),
+    paymentMethods: ['card', 'paypal'],
+  }));
+  const paypalCatalog = createFakeCatalogService({ accounts: paypalAccounts });
+
+  await withHarness({ catalogService: paypalCatalog }, async ({ post, calls }) => {
+    const card = await post('/route-preview', {
+      currency: 'GBP',
+      paymentType: 'one_time',
+      paymentMethod: 'card',
+    });
+    const paypal = await post('/route-preview', {
+      currency: 'GBP',
+      paymentType: 'one_time',
+      paymentMethod: 'paypal',
+    });
+
+    assert.equal(card.status, 200);
+    assert.equal(paypal.status, 200);
+    assert.equal(card.body.route.account.merchantAccountId, 'account-gbp');
+    assert.equal(paypal.body.route.account.merchantAccountId, 'account-gbp');
+    assert.equal(paypal.body.request.paymentMethod, 'paypal');
+    assert.deepEqual(calls, { clientToken: [], sale: [] });
+  });
+
+  await withHarness({}, async ({ post, calls }) => {
+    for (const path of ['/route-preview', '/client-token', '/payments/one-time']) {
+      const response = await post(path, {
+        currency: 'GBP',
+        paymentType: 'one_time',
+        paymentMethod: 'paypal',
+        amount: '19.00',
+        paymentMethodNonce: 'paypal-nonce-secret',
+      });
+
+      assert.equal(response.status, 422, path);
+      assert.equal(response.body.error.code, 'PAYMENT_METHOD_UNAVAILABLE', path);
+      assertNoSensitiveOutput(response.text, ['paypal-nonce-secret']);
+    }
+    assert.deepEqual(calls, { clientToken: [], sale: [] });
+    assert.deepEqual(calls.nonceInspection, []);
   });
 });
 
@@ -581,6 +652,9 @@ test('one-time payment executes against the routed account, verifies it, and exp
       expectedOutcome: 'approved',
     });
     assert.equal(response.body.route.account.merchantAccountId, 'account-usd-sale');
+    assert.equal(response.body.threeDSecureVerification.policy, 'optional');
+    assert.equal(response.body.threeDSecureVerification.performed, false);
+    assert.equal(response.body.threeDSecureVerification.status, null);
     assert.deepEqual(response.body.verification, {
       passed: true,
       expectedMerchantAccountId: 'account-usd-sale',
@@ -612,6 +686,7 @@ test('one-time payment executes against the routed account, verifies it, and exp
         paymentMethodNonce: submittedNonce,
         orderId: 'routing-demo-usd-one-time-1797000000000-request-id',
         submitForSettlement: true,
+        threeDSecureRequired: false,
       },
     ]);
 
@@ -631,6 +706,382 @@ test('one-time payment executes against the routed account, verifies it, and exp
     assert.equal(store.events[0].type, 'route_resolution');
     assert.equal(store.events[1].type, 'transaction');
     assert.equal(store.events[1].outcome, 'succeeded');
+  });
+});
+
+test('PayPal nonce proof and transaction proof preserve the same server-owned route', async () => {
+  const catalogService = createFakeCatalogService({
+    accounts: [
+      createAccount('account-gbp', 'GBP', ['one_time'], {
+        isDefault: true,
+        paymentMethods: ['card', 'paypal'],
+      }),
+    ],
+  });
+  const saleResult = (request) => ({
+    success: true,
+    message: 'Approved',
+    transaction: {
+      id: 'txn-paypal-001',
+      status: 'submitted_for_settlement',
+      amount: request.amount,
+      currencyIsoCode: 'GBP',
+      merchantAccountId: request.merchantAccountId,
+      paymentInstrumentType: 'paypal_account',
+    },
+  });
+
+  await withHarness({
+    catalogService,
+    saleResult,
+    nonceDetails: {
+      type: 'PayPalAccount',
+      details: { payerInfo: { countryCode: 'GB' } },
+    },
+  }, async ({ post, calls, store }) => {
+    const response = await post('/payments/one-time', {
+      scenarioId: 'manual',
+      currency: 'GBP',
+      paymentType: 'one_time',
+      paymentMethod: 'paypal',
+      amount: '19.00',
+      paymentMethodNonce: 'paypal-nonce-secret',
+      merchantAccountId: 'browser-account-spoof',
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.request.paymentMethod, 'paypal');
+    assert.equal(response.body.route.account.merchantAccountId, 'account-gbp');
+    assert.equal(response.body.currencyVerification.passed, true);
+    assert.deepEqual(response.body.paymentMethodVerification, {
+      passed: true,
+      expectedPaymentMethod: 'paypal',
+      actualPaymentMethod: 'paypal',
+      actualInstrumentType: 'paypal_account',
+      explanation: 'Braintree returned the selected payment method.',
+    });
+    assert.deepEqual(calls.nonceInspection, [
+      { paymentMethodNonce: 'paypal-nonce-secret' },
+    ]);
+    assert.equal(calls.sale.length, 1);
+    assert.equal(calls.sale[0].merchantAccountId, 'account-gbp');
+    assert.equal(store.events.at(-1).paymentMethodType, 'paypal');
+    assert.equal(store.events.at(-1).responsePaymentInstrumentType, 'paypal_account');
+    assertNoSensitiveOutput(response.text, ['paypal-nonce-secret']);
+    assertNoSensitiveOutput(store.events, ['paypal-nonce-secret']);
+  });
+});
+
+test('declared payment method must match unambiguous nonce evidence before sale', async (t) => {
+  const catalogService = createFakeCatalogService({
+    accounts: [
+      createAccount('account-gbp', 'GBP', ['one_time'], {
+        paymentMethods: ['card', 'paypal'],
+      }),
+    ],
+  });
+  const cases = [
+    {
+      name: 'different method',
+      nonceDetails: { type: 'CreditCard', details: { cardType: 'Visa' } },
+      actualPaymentMethod: 'card',
+    },
+    {
+      name: 'conflicting evidence',
+      nonceDetails: {
+        type: 'PayPalAccount',
+        details: { cardType: 'Visa', payerInfo: {} },
+      },
+      actualPaymentMethod: null,
+    },
+  ];
+
+  for (const fixture of cases) {
+    await t.test(fixture.name, async () => {
+      await withHarness({
+        catalogService,
+        nonceDetails: fixture.nonceDetails,
+      }, async ({ post, calls, store }) => {
+        const response = await post('/payments/one-time', {
+          currency: 'GBP',
+          paymentType: 'one_time',
+          paymentMethod: 'paypal',
+          amount: '19.00',
+          paymentMethodNonce: 'spoofed-nonce-secret',
+        });
+
+        assert.equal(response.status, 422);
+        assert.equal(response.body.error.code, 'PAYMENT_METHOD_MISMATCH');
+        assert.equal(response.body.retrySafe, true);
+        assert.equal(
+          response.body.paymentMethodVerification.actualPaymentMethod,
+          fixture.actualPaymentMethod
+        );
+        assert.equal(calls.nonceInspection.length, 1);
+        assert.deepEqual(calls.sale, []);
+        assertNoSensitiveOutput(response.text, ['spoofed-nonce-secret']);
+      });
+    });
+  }
+});
+
+test('nonce inspection outage is explicitly retry-safe because no sale was requested', async () => {
+  await withHarness({ nonceError: new Error('Sandbox unavailable') }, async ({
+    post,
+    calls,
+  }) => {
+    const response = await post('/payments/one-time', {
+      currency: 'GBP',
+      paymentType: 'one_time',
+      paymentMethod: 'card',
+      amount: '19.00',
+      paymentMethodNonce: 'opaque-nonce-secret',
+    });
+
+    assert.equal(response.status, 502);
+    assert.equal(response.body.error.code, 'PAYMENT_METHOD_INSPECTION_FAILED');
+    assert.equal(response.body.retrySafe, true);
+    assert.equal(calls.nonceInspection.length, 1);
+    assert.deepEqual(calls.sale, []);
+    assertNoSensitiveOutput(response.text, ['opaque-nonce-secret']);
+  });
+});
+
+test('required 3D Secure blocks missing or failed authentication before sale', async (t) => {
+  const catalogService = createFakeCatalogService({
+    accounts: [
+      createAccount('account-eur', 'EUR', ['one_time'], {
+        isDefault: true,
+        threeDSecurePolicy: 'required',
+      }),
+    ],
+  });
+  const cases = [
+    {
+      name: 'missing authentication',
+      nonceDetails: { type: 'CreditCard', details: { cardType: 'Visa' } },
+      code: 'THREE_D_SECURE_REQUIRED',
+      performed: false,
+    },
+    {
+      name: 'authentication without liability shift',
+      nonceDetails: {
+        type: 'CreditCard',
+        details: { cardType: 'Visa' },
+        threeDSecureInfo: {
+          status: 'authenticate_rejected',
+          liabilityShiftPossible: true,
+          liabilityShifted: false,
+        },
+      },
+      code: 'THREE_D_SECURE_AUTHENTICATION_FAILED',
+      performed: true,
+    },
+  ];
+
+  for (const fixture of cases) {
+    await t.test(fixture.name, async () => {
+      await withHarness({
+        catalogService,
+        nonceDetails: fixture.nonceDetails,
+      }, async ({ post, calls, store }) => {
+        const response = await post('/payments/one-time', {
+          currency: 'EUR',
+          paymentType: 'one_time',
+          amount: '19.00',
+          paymentMethodNonce: 'required-three-d-secure-nonce',
+          threeDSecurePolicy: 'optional',
+        });
+
+        assert.equal(response.status, 422);
+        assert.equal(response.body.error.code, fixture.code);
+        assert.equal(response.body.retrySafe, true);
+        assert.equal(response.body.route.account.threeDSecurePolicy, 'required');
+        assert.equal(response.body.threeDSecureVerification.passed, false);
+        assert.equal(
+          response.body.threeDSecureVerification.performed,
+          fixture.performed
+        );
+        assert.equal(calls.nonceInspection.length, 1);
+        assert.deepEqual(calls.sale, []);
+        assert.equal(store.events.at(-1).type, 'three_d_secure');
+        assert.equal(store.events.at(-1).stage, 6);
+        assert.equal(store.events.at(-1).outcome, 'blocked');
+        assert.equal(
+          store.events.at(-1).threeDSecureStatus,
+          fixture.nonceDetails.threeDSecureInfo?.status ?? null
+        );
+        assertNoSensitiveOutput(response.text, ['required-three-d-secure-nonce']);
+      });
+    });
+  }
+});
+
+test('required 3D Secure proof is enforced before sale and verified on the transaction', async () => {
+  const catalogService = createFakeCatalogService({
+    accounts: [
+      createAccount('account-eur', 'EUR', ['one_time'], {
+        isDefault: true,
+        threeDSecurePolicy: 'required',
+      }),
+    ],
+  });
+  const threeDSecureInfo = {
+    status: 'authenticate_successful',
+    liabilityShiftPossible: true,
+    liabilityShifted: true,
+  };
+
+  await withHarness({
+    catalogService,
+    nonceDetails: {
+      type: 'CreditCard',
+      details: { cardType: 'Visa' },
+      threeDSecureInfo,
+    },
+    saleResult(request) {
+      return {
+        success: true,
+        transaction: {
+          id: 'txn-three-d-secure',
+          status: 'submitted_for_settlement',
+          amount: request.amount,
+          currencyIsoCode: 'EUR',
+          merchantAccountId: request.merchantAccountId,
+          paymentInstrumentType: 'credit_card',
+          threeDSecureInfo: {
+            ...threeDSecureInfo,
+            cavv: 'secret-cavv',
+          },
+        },
+      };
+    },
+  }, async ({ post, calls, store }) => {
+    const response = await post('/payments/one-time', {
+      currency: 'EUR',
+      paymentType: 'one_time',
+      amount: '19.00',
+      paymentMethodNonce: 'authenticated-nonce-secret',
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.deepEqual(response.body.threeDSecureVerification, {
+      passed: true,
+      applicable: true,
+      required: true,
+      performed: true,
+      policy: 'required',
+      ...threeDSecureInfo,
+      explanation:
+        'Braintree proved the required 3D Secure authentication and liability shift.',
+    });
+    assert.equal(calls.sale[0].threeDSecureRequired, true);
+    assert.deepEqual(
+      response.body.braintreeResult.transaction.threeDSecureInfo,
+      threeDSecureInfo
+    );
+    assert.equal(store.events.at(-1).threeDSecurePolicy, 'required');
+    assert.equal(store.events.at(-1).liabilityShifted, true);
+    assertNoSensitiveOutput(response.text, [
+      'authenticated-nonce-secret',
+      'secret-cavv',
+    ]);
+  });
+});
+
+test('required 3D Secure fails closed when the returned transaction loses authentication proof', async () => {
+  const catalogService = createFakeCatalogService({
+    accounts: [
+      createAccount('account-eur', 'EUR', ['one_time'], {
+        isDefault: true,
+        threeDSecurePolicy: 'required',
+      }),
+    ],
+  });
+  const nonceThreeDSecureInfo = {
+    status: 'authenticate_successful',
+    liabilityShiftPossible: true,
+    liabilityShifted: true,
+  };
+
+  await withHarness({
+    catalogService,
+    nonceDetails: {
+      type: 'CreditCard',
+      details: { cardType: 'Visa' },
+      threeDSecureInfo: nonceThreeDSecureInfo,
+    },
+    saleResult: {
+      success: true,
+      transaction: {
+        id: 'txn-missing-three-d-secure-proof',
+        status: 'submitted_for_settlement',
+        amount: '19.00',
+        currencyIsoCode: 'EUR',
+        merchantAccountId: 'account-eur',
+        paymentInstrumentType: 'credit_card',
+      },
+    },
+  }, async ({ post, calls, store }) => {
+    const response = await post('/payments/one-time', {
+      currency: 'EUR',
+      paymentType: 'one_time',
+      amount: '19.00',
+      paymentMethodNonce: 'authenticated-nonce',
+    });
+
+    assert.equal(response.status, 502);
+    assert.equal(response.body.error.code, 'THREE_D_SECURE_VERIFICATION_FAILED');
+    assert.equal(response.body.retrySafe, false);
+    assert.equal(response.body.threeDSecureVerification.performed, false);
+    assert.equal(response.body.threeDSecureVerification.status, null);
+    assert.equal(calls.sale.length, 1);
+    assert.equal(store.events.at(-1).verified, false);
+  });
+});
+
+test('a returned instrument mismatch is an ambiguous completed transaction and must not be retried', async () => {
+  const catalogService = createFakeCatalogService({
+    accounts: [
+      createAccount('account-gbp', 'GBP', ['one_time'], {
+        paymentMethods: ['card', 'paypal'],
+      }),
+    ],
+  });
+
+  await withHarness({
+    catalogService,
+    nonceDetails: { type: 'PayPalAccount', details: { payerInfo: {} } },
+    saleResult: {
+      success: true,
+      transaction: {
+        id: 'txn-instrument-mismatch',
+        status: 'submitted_for_settlement',
+        amount: '19.00',
+        currencyIsoCode: 'GBP',
+        merchantAccountId: 'account-gbp',
+        paymentInstrumentType: 'credit_card',
+      },
+    },
+  }, async ({ post, calls, store }) => {
+    const response = await post('/payments/one-time', {
+      currency: 'GBP',
+      paymentType: 'one_time',
+      paymentMethod: 'paypal',
+      amount: '19.00',
+      paymentMethodNonce: 'paypal-nonce-secret',
+    });
+
+    assert.equal(response.status, 502);
+    assert.equal(response.body.error.code, 'PAYMENT_METHOD_VERIFICATION_FAILED');
+    assert.match(response.body.error.message, /Do not retry/i);
+    assert.equal(response.body.paymentMethodVerification.passed, false);
+    assert.equal(response.body.paymentMethodVerification.actualPaymentMethod, 'card');
+    assert.equal(calls.sale.length, 1);
+    assert.equal(store.events.at(-1).verified, false);
+    assert.equal(store.events.at(-1).outcome, 'failed');
   });
 });
 
@@ -793,6 +1244,7 @@ test('an unexpected approval is not reported as a matched decline demonstration'
         amount: '2001.00',
         currencyIsoCode: 'GBP',
         merchantAccountId: 'account-gbp',
+        paymentInstrumentType: 'credit_card',
       },
     },
   }, async ({ post, calls, store }) => {

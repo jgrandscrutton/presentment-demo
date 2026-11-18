@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  DISPUTE_TEST_CARD,
   UNSUPPORTED_CURRENCY_FALLBACKS,
   buildDemoScenarios,
   discoveredCurrencies,
@@ -15,7 +16,8 @@ function account(
   currency,
   paymentTypes,
   label = merchantAccountId,
-  isDefault = false
+  isDefault = false,
+  threeDSecurePolicy = 'optional'
 ) {
   return {
     merchantAccountId,
@@ -28,6 +30,7 @@ function account(
       paymentTypes.map((paymentType) => [paymentType, 'Matched by test policy'])
     ),
     isDefault,
+    threeDSecurePolicy,
   };
 }
 
@@ -45,10 +48,14 @@ test('demo scenarios are generated from discovered currencies in stable order', 
     scenarios.map((scenario) => scenario.id),
     [
       'eur-one-time',
+      'eur-recurring',
       'gbp-one-time',
+      'gbp-recurring',
       'usd-one-time',
+      'usd-recurring',
       'eur-processor-declined',
       'eur-gateway-rejected',
+      'eur-dispute',
       'jpy-no-route',
     ]
   );
@@ -66,9 +73,13 @@ test('demo scenarios are generated from discovered currencies in stable order', 
     )
   );
   assert.ok(scenarios.every((scenario) => scenario.transactionMode === 'submit_for_settlement'));
+  const dispute = scenarios.find((scenario) => scenario.disputeScenario);
+  assert.equal(dispute.id, 'eur-dispute');
+  assert.equal(dispute.sandboxCardNumber, DISPUTE_TEST_CARD);
+  assert.equal(dispute.expectedOutcome, 'approved');
 });
 
-test('a recurring preview is added only when it routes to a different account', () => {
+test('an executable recurring scenario is added for every matched recurring currency', () => {
   const catalog = [
     account('usd-sale', 'USD', ['one_time'], 'USD sales'),
     account('usd-recurring', 'USD', ['recurring'], 'USD subscriptions'),
@@ -76,15 +87,17 @@ test('a recurring preview is added only when it routes to a different account', 
   ];
 
   const scenarios = buildDemoScenarios(catalog);
-  assert.ok(scenarios.some((scenario) => scenario.id === 'usd-recurring'));
-  assert.equal(
-    scenarios.some((scenario) => scenario.id === 'eur-recurring'),
-    false
-  );
-  assert.match(
-    scenarios.find((scenario) => scenario.id === 'usd-recurring').subtitle,
-    /Preview only.*USD subscriptions/
-  );
+  const usd = scenarios.find((scenario) => scenario.id === 'usd-recurring');
+  const eur = scenarios.find((scenario) => scenario.id === 'eur-recurring');
+
+  assert.equal(usd.recurringModel, 'merchant_managed');
+  assert.equal(usd.usesDifferentAccount, true);
+  assert.match(usd.subtitle, /Vault \+ billing cycles.*separate route.*USD subscriptions/);
+  assert.equal(eur.recurringModel, 'merchant_managed');
+  assert.equal(eur.usesDifferentAccount, false);
+  assert.match(eur.subtitle, /Vault \+ billing cycles.*EUR shared/);
+  assert.doesNotMatch(usd.subtitle, /Preview only/i);
+  assert.doesNotMatch(eur.subtitle, /Preview only/i);
 });
 
 test('a discovered JPY route advances the unsupported scenario to CHF', () => {
@@ -98,14 +111,16 @@ test('a discovered JPY route advances the unsupported scenario to CHF', () => {
     scenarios.map((scenario) => scenario.id),
     [
       'jpy-one-time',
+      'jpy-recurring',
       'jpy-processor-declined',
       'jpy-gateway-rejected',
+      'jpy-dispute',
       'chf-no-route',
     ]
   );
   assert.equal(scenarios[0].amount.includes('.'), false);
-  assert.equal(scenarios[3].currency, 'CHF');
-  assert.equal(scenarios[3].unsupported, true);
+  assert.equal(scenarios[5].currency, 'CHF');
+  assert.equal(scenarios[5].unsupported, true);
 });
 
 test('sandbox decline scenarios use the connected gateway default currency', () => {
@@ -140,6 +155,39 @@ test('sandbox decline scenarios use the connected gateway default currency', () 
         outcome: 'gateway_rejected',
       },
     ]
+  );
+});
+
+test('the dispute preset uses an optional 3D Secure route instead of an impossible required route', () => {
+  const catalog = [
+    account('eur-default', 'EUR', ['one_time'], 'EUR default', true, 'required'),
+    account('gbp-optional', 'GBP', ['one_time'], 'GBP optional', false, 'optional'),
+  ];
+
+  const scenarios = buildDemoScenarios(catalog);
+  const dispute = scenarios.find((scenario) => scenario.disputeScenario);
+  const declines = scenarios.filter((scenario) => scenario.expectedOutcome !== 'approved');
+
+  assert.equal(dispute.id, 'gbp-dispute');
+  assert.equal(dispute.currency, 'GBP');
+  assert.deepEqual(
+    declines.map((scenario) => scenario.currency),
+    ['EUR', 'EUR']
+  );
+});
+
+test('the dispute preset is omitted when every one-time route requires 3D Secure', () => {
+  const catalog = [
+    account('eur-required', 'EUR', ['one_time'], 'EUR required', true, 'required'),
+    account('usd-required', 'USD', ['one_time'], 'USD required', false, 'required'),
+  ];
+
+  const scenarios = buildDemoScenarios(catalog);
+
+  assert.equal(scenarios.some((scenario) => scenario.disputeScenario), false);
+  assert.equal(
+    scenarios.filter((scenario) => scenario.expectedOutcome !== 'approved').length,
+    2
   );
 });
 

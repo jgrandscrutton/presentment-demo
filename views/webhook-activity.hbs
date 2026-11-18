@@ -136,7 +136,7 @@
 <section class="activity-section">
     <div class="activity-header">
         <h1>Webhook Activity Monitor</h1>
-        <p>Real-time webhook events from PayPal/Braintree</p>
+        <p>Real-time webhook events received through the Braintree integration</p>
     </div>
 
     <div style="text-align: center;">
@@ -175,7 +175,7 @@ function displayEvents(events, count) {
     const container = document.getElementById('events-container');
     
     if (events.length === 0) {
-        container.innerHTML = '<div class="no-events">No webhook events received yet. Cancel a billing agreement in PayPal to see events appear here.</div>';
+        container.innerHTML = '<div class="no-events">No verified Braintree webhook events received yet. Start the local webhook receiver and run a Sandbox dispute or subscription scenario.</div>';
         return;
     }
     
@@ -210,6 +210,16 @@ function displayEvents(events, count) {
 
 function getEventBadge(type) {
     const lowerType = type.toLowerCase();
+
+    if (lowerType.includes('won') || lowerType.includes('successfully')) {
+        return { class: 'badge-created', text: 'SUCCEEDED' };
+    }
+    if (lowerType.includes('lost') || lowerType.includes('unsuccessfully') || lowerType.includes('past_due')) {
+        return { class: 'badge-cancelled', text: 'ATTENTION' };
+    }
+    if (lowerType.includes('opened')) {
+        return { class: 'badge-updated', text: 'OPENED' };
+    }
     
     if (lowerType.includes('cancel')) {
         return { class: 'badge-cancelled', text: 'CANCELLED' };

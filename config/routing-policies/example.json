@@ -3,11 +3,15 @@
   "accounts": {
     "example_primary_account": {
       "label": "Primary demo account",
-      "paymentTypes": ["one_time", "recurring"]
+      "paymentTypes": ["one_time", "recurring"],
+      "paymentMethods": ["card", "paypal"],
+      "threeDSecurePolicy": "required"
     },
     "example_subscription_account": {
       "label": "Subscription demo account",
-      "paymentTypes": ["recurring"]
+      "paymentTypes": ["recurring"],
+      "paymentMethods": ["card"],
+      "threeDSecurePolicy": "optional"
     }
   }
 }

@@ -15,6 +15,7 @@ const {
   buildDemoScenarios,
   discoveredCurrencies,
 } = require('../lib/demo/scenarios');
+const { PAYMENT_METHOD_LABELS } = require('../lib/payment-methods');
 
 const PAYMENT_TYPE_LABELS = Object.freeze({
   one_time: 'One-time',
@@ -31,6 +32,16 @@ const ROLE_SOURCE_LABELS = Object.freeze({
   policy: 'Merchant policy',
   auto: 'Automatic',
   mixed: 'Policy + automatic',
+});
+
+const RECURRING_MODEL_LABELS = Object.freeze({
+  merchant_managed: 'Model A · Merchant-managed',
+  braintree_subscription: 'Model B · Braintree Subscription',
+});
+
+const THREE_D_SECURE_POLICY_LABELS = Object.freeze({
+  required: 'Required',
+  optional: 'Optional',
 });
 
 function currencyDisplayName(currency) {
@@ -74,6 +85,9 @@ function toAccountView(account) {
   const paymentTypes = Array.isArray(account.paymentTypes)
     ? account.paymentTypes
     : [];
+  const paymentMethods = Array.isArray(account.paymentMethods)
+    ? account.paymentMethods
+    : [];
 
   return {
     ...account,
@@ -87,11 +101,88 @@ function toAccountView(account) {
         sourceLabel: ROLE_SOURCE_LABELS[source] || 'Unspecified',
       };
     }),
+    paymentMethods: paymentMethods.map((paymentMethod) => ({
+      key: paymentMethod,
+      label: PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod,
+    })),
     hasPaymentTypes: paymentTypes.length > 0,
     roleSourceLabel: ROLE_SOURCE_LABELS[account.roleSource] || 'None',
     assignmentStateLabel:
       ASSIGNMENT_LABELS[account.assignmentState] || account.assignmentState || 'Unknown',
+    threeDSecurePolicyLabel:
+      THREE_D_SECURE_POLICY_LABELS[account.threeDSecurePolicy] || 'Not configured',
+    threeDSecurePolicyClass:
+      account.threeDSecurePolicy === 'required' ? 'is-required' : 'is-optional',
   };
+}
+
+function planDisplayLabel(plan) {
+  const cadence = Number.isInteger(plan.billingFrequency) && plan.billingFrequency > 0
+    ? `every ${plan.billingFrequency} ${plan.billingFrequency === 1 ? 'month' : 'months'}`
+    : 'plan schedule';
+  const price = plan.price ? `${plan.price} ${plan.currency}` : plan.currency;
+  return `${plan.name} · ${price} · ${cadence}`;
+}
+
+function toPlanView(plan, supportedCurrencies) {
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan)) return null;
+
+  const id = typeof plan.id === 'string' ? plan.id.trim() : '';
+  const currency = typeof plan.currency === 'string'
+    ? plan.currency.trim().toUpperCase()
+    : '';
+  if (
+    id === '' ||
+    !/^[A-Z]{3}$/.test(currency) ||
+    !supportedCurrencies.has(currency)
+  ) {
+    return null;
+  }
+
+  const name = typeof plan.name === 'string' && plan.name.trim() !== ''
+    ? plan.name.trim()
+    : id;
+  const description = typeof plan.description === 'string'
+    ? plan.description.trim()
+    : '';
+  const price = typeof plan.price === 'string' || typeof plan.price === 'number'
+    ? String(plan.price).trim()
+    : '';
+  const parsedFrequency = Number(plan.billingFrequency);
+  const billingFrequency = Number.isInteger(parsedFrequency) && parsedFrequency > 0
+    ? parsedFrequency
+    : null;
+  const view = {
+    id,
+    name,
+    description,
+    currency,
+    price,
+    billingFrequency,
+  };
+
+  return {
+    ...view,
+    label: planDisplayLabel(view),
+  };
+}
+
+function toPlanDiscoveryView(planDiscovery) {
+  const source = planDiscovery && typeof planDiscovery === 'object'
+    ? planDiscovery
+    : {};
+  const status = typeof source.status === 'string' && source.status.trim() !== ''
+    ? source.status.trim()
+    : 'not_run';
+  const message = typeof source.message === 'string' && source.message.trim() !== ''
+    ? source.message.trim()
+    : typeof source.error?.message === 'string' && source.error.message.trim() !== ''
+      ? source.error.message.trim()
+    : status === 'ok'
+      ? 'Plans loaded from Braintree Sandbox.'
+      : 'Plan discovery has not completed.';
+
+  return { status, message };
 }
 
 function baseViewModel(state) {
@@ -115,6 +206,17 @@ function baseViewModel(state) {
     currencyOptions: [],
     scenarios: [],
     firstScenario: null,
+    recurringModels: Object.entries(RECURRING_MODEL_LABELS).map(([value, label]) => ({
+      value,
+      label,
+    })),
+    initialRecurringModel: 'merchant_managed',
+    planOptions: [],
+    planAvailability: [],
+    hasPlans: false,
+    initialPlanId: '',
+    planDiscoveryStatus: 'not_run',
+    planDiscoveryMessage: 'Plan discovery has not completed.',
     initialScenarioId: 'unavailable',
     initialCurrency: '',
     initialPaymentType: 'one_time',
@@ -154,6 +256,27 @@ function buildDemoViewModel(catalogService = getRuntimeCatalogService()) {
     const accounts = catalog.map(toAccountView);
     const scenarios = [...buildDemoScenarios(catalog)];
     const supportedCurrencies = discoveredCurrencies(catalog);
+    const supportedCurrencySet = new Set(supportedCurrencies);
+    const planOptions = (Array.isArray(state.plans) ? state.plans : [])
+      .map((plan) => toPlanView(plan, supportedCurrencySet))
+      .filter(Boolean)
+      .sort((left, right) =>
+        left.currency.localeCompare(right.currency) ||
+        left.name.localeCompare(right.name) ||
+        left.id.localeCompare(right.id)
+      );
+    const planAvailability = supportedCurrencies.map((currency) => {
+      const planCount = planOptions.filter((plan) => plan.currency === currency).length;
+      return {
+        currency,
+        available: planCount > 0,
+        planCount,
+        message: planCount > 0
+          ? `${planCount} ${planCount === 1 ? 'plan' : 'plans'} available`
+          : 'No plan available',
+      };
+    });
+    const planDiscovery = toPlanDiscoveryView(state.planDiscovery);
     const unsupportedScenario = scenarios.find((scenario) => scenario.unsupported);
     const currencyOptions = supportedCurrencies.map((currency) =>
       buildCurrencyOption(currency)
@@ -189,6 +312,13 @@ function buildDemoViewModel(catalogService = getRuntimeCatalogService()) {
       currencyOptions,
       scenarios,
       firstScenario,
+      planOptions,
+      planAvailability,
+      hasPlans: planOptions.length > 0,
+      initialPlanId:
+        planOptions.find((plan) => plan.currency === initialCurrency)?.id || '',
+      planDiscoveryStatus: planDiscovery.status,
+      planDiscoveryMessage: planDiscovery.message,
       initialScenarioId: firstScenario?.id || 'manual',
       initialCurrency,
       initialPaymentType: firstScenario?.paymentType || 'one_time',
@@ -237,3 +367,4 @@ router.createDemoRouter = createDemoRouter;
 module.exports = router;
 module.exports.buildDemoViewModel = buildDemoViewModel;
 module.exports.createDemoRouter = createDemoRouter;
+module.exports.toPlanView = toPlanView;

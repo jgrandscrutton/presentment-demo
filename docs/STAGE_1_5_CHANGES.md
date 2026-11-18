@@ -361,7 +361,7 @@ Those remain assigned to later stages. Stage 2 must use `gatewayMerchantId` when
 
 ## Official Braintree documentation used
 
-Only official PayPal/Braintree documentation was used for Braintree-specific behavior:
+Only official Braintree documentation hosted on PayPal Developer was used for Braintree-specific behavior:
 
 - [List all merchant accounts — Node.js](https://developer.paypal.com/braintree/docs/reference/request/merchant-account/all/node/) — runtime discovery through `merchantAccount.all`.
 - [Merchant account response — Node.js](https://developer.paypal.com/braintree/docs/reference/response/merchant-account/node/) — account ID, currency, status, and default-account fields.

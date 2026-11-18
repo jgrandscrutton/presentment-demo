@@ -10,8 +10,12 @@ const { getRuntimeCatalogService } = require('./lib/catalog/runtime');
 const apiRouter = require('./routes/api');
 const basicRouter = require('./routes/basic');
 const demoApiRouter = require('./routes/demo-api');
+const demoDisputesRouter = require('./routes/demo-disputes');
 const demoLogRouter = require('./routes/demo-log');
+const demoPreflightRouter = require('./routes/demo-preflight');
+const demoRoutesRouter = require('./routes/demo-routes');
 const demoOperationsRouter = require('./routes/demo-operations');
+const demoRecurringApiRouter = require('./routes/demo-recurring-api');
 const demoRouter = require('./routes/demo');
 const storeRouter = require('./routes/store');
 
@@ -67,12 +71,19 @@ function createApp({
   });
 
   app.use('/demo/log', routers.demoLog || demoLogRouter);
+  app.use('/demo/disputes', routers.demoDisputes || demoDisputesRouter);
+  app.use('/demo/preflight', routers.demoPreflight || demoPreflightRouter);
+  app.use('/demo/routes', routers.demoRoutes || demoRoutesRouter);
   app.use('/demo', routers.demo || demoRouter);
   app.use('/', routers.store || storeRouter);
   app.use('/basic', routers.basic || basicRouter);
   app.use(
     '/api/demo/transactions',
     routers.demoOperations || demoOperationsRouter
+  );
+  app.use(
+    '/api/demo/recurring',
+    routers.demoRecurringApi || demoRecurringApiRouter
   );
   app.use('/api/demo', routers.demoApi || demoApiRouter);
   app.use('/api', routers.api || apiRouter);
