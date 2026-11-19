@@ -49,6 +49,16 @@ The terminal prints a clickable local URL, normally `http://localhost:3000`.
 - `npm run dev` — run with automatic restarts
 - `npm test` — run the test suite
 
+## Routing demo
+
+Open `/demo` for the multi-account Routing demo. It includes discovered merchant-account routing, Card and Braintree-mediated PayPal, recurring models, 3D Secure policy, redacted activity at `/demo/log`, disputes, preflight checks, and a protected route editor. The existing storefront and its billing APIs remain available alongside it.
+
+The Routing demo uses the same `BRAINTREE_MERCHANT_ID`, `BRAINTREE_PUBLIC_KEY`, and `BRAINTREE_PRIVATE_KEY` configuration shown above; legacy unprefixed names are also accepted. Keep `BRAINTREE_ENVIRONMENT=sandbox`. Startup performs read-only merchant-account and plan discovery before listening. `HOST` defaults to loopback (`127.0.0.1`). Set `DEMO_PRESENTER_PASSCODE` to enable the local route editor.
+
+Run `npm run verify:stage7:browser` for an isolated presenter-workflow browser smoke with fake data and no gateway mutations. The `verify:*:sandbox` commands create Sandbox objects and remain opt-in. The separate `npm run webhook:receiver` process handles the Routing demo's public callbacks; see `docs/STAGE_4_LOCAL_WEBHOOKS.md`. The existing webhook activity endpoint combines storefront receipt history with persisted Routing demo evidence.
+
+The stage implementation records and presenter scripts remain under `docs/`. Their live PayPal, 3D Secure, and public-webhook rehearsal limits still apply.
+
 ## Payment and billing flow
 
 - All server-side payment operations use Braintree. PayPal is a wallet presented through Braintree's PayPal Checkout component; the project has no separate PayPal server SDK.

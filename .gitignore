@@ -3,3 +3,7 @@ node_modules/
 .DS_Store
 npm-debug.log*
 var/
+/data/runtime/
+/config/routing-policies/*.json
+!/config/routing-policies/example.json
+/setup_gar_npm.sh

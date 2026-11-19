@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Protected presenter controls for the Braintree Sandbox route policy.">
+  <title>{{title}} · PhonePal</title>
+  <link rel="stylesheet" href="/stylesheets/demo.css">
+  <link rel="stylesheet" href="/stylesheets/demo-routes.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="PhonePal home">
+      <img src="/img/pp-logo.png" alt="" width="40" height="40">
+      <span>PhonePal</span>
+    </a>
+    <nav class="demo-nav" aria-label="Demo sections">
+      <a href="/demo">Scenario runner</a>
+      <a href="/demo/log">Transaction log</a>
+      <a href="/demo/disputes">Disputes</a>
+      <a href="/demo/preflight">Preflight</a>
+      <a href="/demo/routes" aria-current="page">Routes</a>
+    </nav>
+    <div class="environment-pill" aria-label="Environment: Braintree Sandbox">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span class="environment-label-full">Braintree Sandbox</span>
+      <span class="environment-label-short">Sandbox</span>
+    </div>
+  </header>
+
+  {{#if loginMode}}
+    <main class="route-access-page">
+      <section class="route-access-card" aria-labelledby="route-access-title">
+        <p class="eyebrow"><span>Presenter controls</span> Protected local tool</p>
+        <h1 id="route-access-title">Route mapping</h1>
+        <p>Sign in with the passcode configured on this demo host. The passcode is never shown in the browser or stored in the route policy.</p>
+
+        {{#if problem}}
+          <div class="route-message is-error" role="alert">
+            <strong>{{problem.code}}</strong>
+            <span>{{problem.message}}</span>
+          </div>
+        {{/if}}
+
+        {{#if passcodeConfigured}}
+          <form class="route-login-form" action="/demo/routes/login" method="post">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+            <label for="presenter-passcode">Presenter passcode</label>
+            <input id="presenter-passcode" name="passcode" type="password" autocomplete="current-password" required autofocus>
+            <button class="primary-button" type="submit">Open route mapping</button>
+          </form>
+        {{else}}
+          <div class="route-message is-warning" role="status">
+            <strong>Route mapping is disabled</strong>
+            <span>Set <code>DEMO_PRESENTER_PASSCODE</code> in the local environment, then restart the demo. No default passcode exists.</span>
+          </div>
+        {{/if}}
+
+        <aside class="route-boundary">
+          <strong>What this tool can change</strong>
+          <p>It can assign already-discovered Sandbox merchant accounts to one-time and recurring routes. It cannot accept credentials, create merchant accounts, or change account capabilities.</p>
+        </aside>
+      </section>
+    </main>
+  {{else}}
+    <main class="route-mapping-page">
+      <section class="route-mapping-hero" aria-labelledby="route-mapping-title">
+        <div>
+          <p class="eyebrow"><span>Stage 7</span> Presenter controls</p>
+          <h1 id="route-mapping-title">Route existing accounts.<br><em>Keep the policy explainable.</em></h1>
+          <p>Choose which active account handles each currency and payment purpose. Saving writes the local policy overlay atomically, rediscovers the catalog, and rolls back if validation fails.</p>
+        </div>
+        <div class="route-session-panel">
+          <span>Protected session</span>
+          <strong>Expires after 30 minutes</strong>
+          <form action="/demo/routes/logout" method="post">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+            <button class="secondary-button" type="submit">Lock controls</button>
+          </form>
+        </div>
+      </section>
+
+      {{#if notice}}
+        <div class="route-message is-success" role="status" aria-live="polite">
+          <strong>{{notice.title}}</strong>
+          <span>{{notice.message}}</span>
+        </div>
+      {{/if}}
+      {{#if problem}}
+        <div class="route-message is-error" role="alert">
+          <strong>{{problem.code}}</strong>
+          <span>{{problem.message}}</span>
+        </div>
+      {{/if}}
+
+      <section class="route-catalog-summary" aria-labelledby="route-catalog-title">
+        <div>
+          <p class="section-kicker">Connected catalog</p>
+          <h2 id="route-catalog-title">{{gatewayMerchantId}}</h2>
+        </div>
+        <dl>
+          <div><dt>Status</dt><dd class="{{catalogStatusClass}}">{{catalogStatusLabel}}</dd></div>
+          <div><dt>Policy</dt><dd>{{policyStatus}}</dd></div>
+          <div><dt>Discovered</dt><dd>{{discoveredAt}}</dd></div>
+        </dl>
+        <p>{{catalogMessage}}</p>
+      </section>
+
+      {{#if catalogAvailable}}
+        {{#if hasRoutes}}
+          <form class="route-policy-form" action="/demo/routes/save" method="post">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+            <div class="route-policy-heading">
+              <div>
+                <p class="section-kicker">Editable policy overlay</p>
+                <h2>Assignments by currency</h2>
+              </div>
+              <p>“Not assigned” intentionally leaves that route unavailable. Account currency, status, payment methods, and 3D Secure policy cannot be edited here.</p>
+            </div>
+
+            <div class="route-currency-grid">
+              {{#each routeGroups}}
+                <fieldset class="route-currency-card">
+                  <legend>{{currency}}</legend>
+                  {{#each routes}}
+                    <label for="{{fieldName}}">{{paymentTypeLabel}}</label>
+                    <select id="{{fieldName}}" name="{{fieldName}}">
+                      <option value="" {{#if isUnassigned}}selected{{/if}}>Not assigned</option>
+                      {{#each options}}
+                        <option value="{{merchantAccountId}}" {{#if selected}}selected{{/if}}>{{label}} · {{merchantAccountId}}{{#if isDefault}} · gateway default{{/if}}</option>
+                      {{/each}}
+                    </select>
+                    <span class="route-current">Current: {{#if currentAccountId}}<code>{{currentAccountId}}</code>{{else}}not assigned{{/if}}</span>
+                  {{/each}}
+                </fieldset>
+              {{/each}}
+            </div>
+
+            <div class="route-save-bar">
+              <div>
+                <strong>Changes affect the next route preview.</strong>
+                <span>No Braintree transaction, customer, payment method, subscription, or merchant account is created by saving.</span>
+              </div>
+              <button class="primary-button" type="submit">Validate and save routes</button>
+            </div>
+          </form>
+        {{else}}
+          <div class="route-message is-warning" role="status">
+            <strong>No active route currencies</strong>
+            <span>Refresh discovery on the preflight page before editing the policy.</span>
+          </div>
+        {{/if}}
+      {{else}}
+        <div class="route-message is-error" role="status">
+          <strong>Editing is unavailable</strong>
+          <span>Open Preflight and run a fresh read-only discovery check first.</span>
+        </div>
+      {{/if}}
+
+      <section class="route-account-section" aria-labelledby="route-accounts-title">
+        <div class="route-policy-heading">
+          <div>
+            <p class="section-kicker">Read-only account facts</p>
+            <h2 id="route-accounts-title">Eligible inventory</h2>
+          </div>
+          <p>These values come from the current discovery and policy catalog, not from the form.</p>
+        </div>
+        <div class="route-account-grid">
+          {{#each accounts}}
+            <article>
+              <div><span>{{currency}}{{#if isDefault}} · Gateway default{{/if}}</span><strong>{{label}}</strong><code>{{merchantAccountId}}</code></div>
+              <dl>
+                <div><dt>Status</dt><dd>{{status}}</dd></div>
+                <div><dt>Methods</dt><dd>{{paymentMethodLabel}}</dd></div>
+                <div><dt>3D Secure</dt><dd>{{threeDSecureLabel}}</dd></div>
+                <div><dt>Current roles</dt><dd>{{roleLabel}}</dd></div>
+              </dl>
+            </article>
+          {{/each}}
+        </div>
+      </section>
+
+      <section class="route-restore-section" aria-labelledby="route-restore-title">
+        <div>
+          <p class="section-kicker">Recovery</p>
+          <h2 id="route-restore-title">Restore starting policy</h2>
+          <p>The first presenter save captures the overlay that was already on disk. Restore returns to that exact starting policy; it never guesses and never deletes Braintree objects.</p>
+        </div>
+        {{#if baselineAvailable}}
+          <form action="/demo/routes/restore" method="post">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+            <label><input type="checkbox" name="confirmRestore" value="restore-starting-policy" required> I understand this replaces the current local route overlay.</label>
+            <button class="danger-button" type="submit">Restore starting policy</button>
+          </form>
+        {{else}}
+          <div class="route-restore-unavailable">
+            <strong>No presenter baseline yet</strong>
+            <span>It will be captured automatically when the first route edit is saved.</span>
+          </div>
+        {{/if}}
+      </section>
+    </main>
+  {{/if}}
+
+  <footer>
+    <p>PhonePal · Braintree routing demonstration</p>
+    <p>Protected local policy controls / Sandbox only</p>
+  </footer>
+</body>
+</html>

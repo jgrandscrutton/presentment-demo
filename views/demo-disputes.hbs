@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Verified Braintree Sandbox dispute webhooks and dispute-management actions.">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="/stylesheets/demo.css">
+  <link rel="stylesheet" href="/stylesheets/demo-disputes.css">
+</head>
+<body data-initial-dispute-count="{{initialDisputeCount}}">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="PhonePal home">
+      <img src="/img/pp-logo.png" alt="" width="40" height="40">
+      <span>PhonePal</span>
+    </a>
+    <nav class="demo-nav" aria-label="Demo sections">
+      <a href="/demo">Scenario runner</a>
+      <a href="/demo/log">Transaction log</a>
+      <a href="/demo/disputes" aria-current="page">Disputes</a>
+      <a href="/demo/preflight">Preflight</a>
+      <a href="/demo/routes">Routes</a>
+    </nav>
+    <div class="environment-pill" aria-label="Environment: Braintree Sandbox">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span>Braintree Sandbox</span>
+    </div>
+  </header>
+
+  <main class="disputes-page">
+    <section class="disputes-hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span>Stage 4</span> Webhooks + disputes</p>
+        <h1 id="page-title">Handle chargebacks with verified context.</h1>
+        <p>
+          Braintree signs each webhook. The server verifies it, links the dispute to the
+          original routed transaction, and keeps account identifiers out of browser input.
+        </p>
+      </div>
+      <ol class="dispute-proof" aria-label="Dispute proof sequence">
+        <li><strong>1 · Verify</strong><span>Parse Braintree signature</span></li>
+        <li><strong>2 · Link</strong><span>Match the routed transaction</span></li>
+        <li><strong>3 · Act</strong><span>Accept or submit evidence</span></li>
+      </ol>
+    </section>
+
+    <section class="dispute-workspace" aria-labelledby="activity-title">
+      <div class="section-heading dispute-heading">
+        <div>
+          <p class="section-kicker">Live Sandbox activity</p>
+          <h2 id="activity-title">Dispute inbox</h2>
+          <p>Updates arrive through polling without reloading this page.</p>
+        </div>
+        <div class="polling-state" role="status" aria-live="polite">
+          <span aria-hidden="true"></span>
+          <span id="polling-status">Waiting for verified webhook activity…</span>
+        </div>
+      </div>
+
+      <aside class="webhook-boundary" role="note">
+        <strong>Local receiver boundary</strong>
+        <span>The HTTPS tunnel exposes only the signed Braintree webhook listener. Payment and dispute mutation routes remain local.</span>
+      </aside>
+
+      <div id="dispute-list" class="dispute-list" aria-live="polite" aria-busy="true"></div>
+      <div id="empty-disputes" class="empty-disputes" hidden>
+        <strong>No dispute webhooks have arrived.</strong>
+        <span>Run the documented Sandbox dispute-card scenario, then wait for Braintree to deliver the signed notification.</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>PhonePal · Braintree routing demonstration</p>
+    <p>Stage 4 / Sandbox only</p>
+  </footer>
+
+  <script src="/scripts/demo-disputes.js" defer></script>
+</body>
+</html>
