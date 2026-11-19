@@ -104,6 +104,7 @@ function createClientHarness(paymentOutcome = 'route-mismatch', options = {}) {
     'plan-availability',
     'merchant-managed-copy',
     'braintree-subscription-copy',
+    'recurring-availability',
     'amount',
     'currency-prefix',
     'demo-rate',
@@ -173,6 +174,7 @@ function createClientHarness(paymentOutcome = 'route-mismatch', options = {}) {
   elements['transaction-mode'].value = 'submit_for_settlement';
   elements['expected-outcome'].value = 'approved';
   elements['recurring-model'].value = 'merchant_managed';
+  elements['recurring-model'].options = [new FakeElement('merchant_managed'), new FakeElement('braintree_subscription')];
   elements['payment-method-card'].checked = true;
   elements['payment-method-paypal'].checked = false;
   elements['three-d-secure-enabled'].checked = true;
@@ -403,7 +405,9 @@ function createClientHarness(paymentOutcome = 'route-mismatch', options = {}) {
         success: true,
         clientToken: 'test-client-authorization',
         request: safeRequestFor(body),
-        route: routeFor(body),
+        route: options.tokenRoute
+          ? options.tokenRoute(routeFor(body), body)
+          : routeFor(body),
       });
     }
     if (url === '/api/demo/catalog/refresh') {
@@ -1919,4 +1923,101 @@ test('a refresh network failure also invalidates the current catalog presentatio
   assert.ok(staleCatalogContent.every((element) => element.hidden));
   assert.match(elements['checkout-status'].textContent, /could not be completed/i);
   assert.match(refreshStatus.textContent, /could not be completed/i);
+});
+
+test('switching an approved Card intent to PayPal preserves the entered payment amount', async () => {
+  const harness = createClientHarness('authorized');
+  await waitFor(() => harness.calls.hostedFields === 1 && !harness.elements['run-payment'].disabled);
+  harness.elements.amount.value = '27.35';
+  await harness.elements.amount.dispatch('input');
+  await choosePayPal(harness);
+  assert.equal(harness.elements.amount.value, '27.35');
+  await harness.calls.paypalButtonConfig.createOrder();
+  assert.equal(harness.calls.paypalCreates.at(-1).amount, '27.35');
+  await harness.calls.paypalButtonConfig.onApprove({ orderID: 'sandbox-order-id' });
+  const request = harness.calls.requests.findLast((item) => item.url === '/api/demo/payments/one-time');
+  assert.equal(request.body.amount, '27.35');
+  assert.equal(request.body.currency, 'GBP');
+});
+
+test('switching a failure demonstration to PayPal resets only the Sandbox trigger amount', async () => {
+  const harness = createClientHarness('authorized');
+  await waitFor(() => harness.calls.hostedFields === 1);
+  harness.elements['expected-outcome'].value = 'processor_declined';
+  await harness.elements['expected-outcome'].dispatch('change');
+  await waitFor(() => harness.calls.hostedFields === 2);
+  assert.equal(harness.elements.amount.value, '2001.00');
+  await choosePayPal(harness);
+  assert.equal(harness.elements['expected-outcome'].value, 'approved');
+  assert.equal(harness.elements.amount.value, '10.00');
+});
+
+test('Card and PayPal setup stop when authorization returns a changed or missing route', async (t) => {
+  const changes = {
+    account: (route) => ({ ...route, account: { ...route.account, merchantAccountId: 'changed-account' } }),
+    policy: (route) => ({ ...route, account: { ...route.account, threeDSecurePolicy: 'required' } }),
+    currency: (route) => ({ ...route, intent: { ...route.intent, currency: 'JPY' } }),
+    missing: () => null,
+  };
+  for (const method of ['card', 'paypal']) {
+    for (const [change, transform] of Object.entries(changes)) {
+      await t.test(`${method}: ${change}`, async () => {
+        let changed = true;
+        const harness = createClientHarness('authorized', {
+          tokenRoute: (route, body) => changed && body.paymentMethod === method ? transform(route) : route,
+        });
+        if (method === 'paypal') {
+          await waitFor(() => harness.calls.hostedFields === 1);
+          harness.elements['payment-method-card'].checked = false;
+          harness.elements['payment-method-paypal'].checked = true;
+          await harness.elements['payment-method-paypal'].dispatch('change');
+        }
+        await waitFor(() => harness.elements['inspector-state'].textContent === 'Route changed');
+        assert.equal(harness.calls.clientCreates.length, method === 'card' ? 0 : 1);
+        assert.equal(harness.calls.paypalCheckout, 0);
+        assert.equal(harness.elements['run-payment'].disabled, true);
+        await harness.elements['demo-payment-form'].dispatch('submit');
+        assert.equal(harness.calls.payment, 0);
+        assert.equal(harness.calls.recurringStart, 0);
+        changed = false;
+        await harness.elements['preview-route'].dispatch('click');
+        await waitFor(() => method === 'card' ? harness.calls.hostedFields === 1 : harness.calls.paypalRenders === 1);
+        assert.equal(harness.elements['run-payment'].disabled, false);
+      });
+    }
+  }
+});
+
+test('required-policy Card subscriptions are blocked before authorization and recover with Model A or PayPal', async () => {
+  const harness = createClientHarness('authorized', { threeDSecurePolicy: 'required' });
+  await waitFor(() => harness.calls.hostedFields === 1);
+  harness.elements['payment-type'].value = 'recurring';
+  await harness.elements['payment-type'].dispatch('change');
+  await waitFor(() => harness.calls.hostedFields === 2);
+  assert.equal(harness.elements['recurring-model'].options[1].disabled, true);
+  assert.equal(harness.elements['recurring-availability'].hidden, false);
+  const tokenCount = harness.calls.token;
+  harness.elements['recurring-model'].value = 'braintree_subscription';
+  await harness.elements['recurring-model'].dispatch('change');
+  await waitFor(() => harness.elements['inspector-state'].textContent === 'Subscription unavailable');
+  assert.equal(harness.calls.token, tokenCount);
+  assert.equal(harness.elements['card-fields'].disabled, true);
+  assert.equal(harness.elements['run-payment'].disabled, true);
+  await harness.elements['demo-payment-form'].dispatch('submit');
+  assert.equal(harness.calls.recurringStart, 0);
+  assert.equal(harness.calls.threeDSecureVerifications.length, 0);
+  assert.match(harness.elements['checkout-status'].textContent, /Model A/);
+
+  harness.elements['recurring-model'].value = 'merchant_managed';
+  await harness.elements['recurring-model'].dispatch('change');
+  await waitFor(() => harness.calls.hostedFields === 3 && !harness.elements['run-payment'].disabled);
+  await choosePayPal(harness);
+  assert.equal(harness.elements['recurring-model'].options[1].disabled, false);
+  assert.equal(harness.elements['recurring-availability'].hidden, true);
+  harness.elements['recurring-model'].value = 'braintree_subscription';
+  await harness.elements['recurring-model'].dispatch('change');
+  await waitFor(() => harness.calls.paypalRenders === 2);
+  await harness.calls.paypalButtonConfig.createBillingAgreement();
+  await harness.calls.paypalButtonConfig.onApprove({ billingToken: 'sandbox-billing-token' });
+  assert.equal(harness.calls.recurringStart, 1);
 });

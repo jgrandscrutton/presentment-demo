@@ -35,9 +35,17 @@
         <p class="eyebrow">Server-selected routing · Braintree Sandbox</p>
         <h1 id="page-title">Route payments with clear proof.</h1>
         <p class="hero-summary">
-          Choose an intent, preview the server-selected account, and verify what Braintree returned.
+          Run a payment intent through server-selected merchant-account routing, then compare the decision with Braintree’s response.
         </p>
-        <a class="hero-start-link" href="#runner">Run a scenario <span aria-hidden="true">&darr;</span></a>
+        <div class="hero-actions">
+          <a class="hero-start-link" href="#runner">Run a scenario <span aria-hidden="true">&darr;</span></a>
+          <a class="hero-preflight-link" href="/demo/preflight">Check presenter readiness</a>
+        </div>
+        <ul class="hero-meta" aria-label="Demo summary">
+          <li><strong>{{scenarios.length}}</strong><span>ready-made scenarios</span></li>
+          <li><strong>{{accountCount}}</strong><span>discovered accounts</span></li>
+          <li><strong>{{currencyCount}}</strong><span>available currencies</span></li>
+        </ul>
       </div>
     </section>
 
@@ -87,9 +95,14 @@
                 data-expected-outcome="{{expectedOutcome}}"
                 data-recurring-model="{{recurringModel}}"
                 data-dispute-scenario="{{disputeScenario}}"
+                data-unsupported="{{unsupported}}"
                 aria-pressed="{{#if @first}}true{{else}}false{{/if}}">
                 <span class="preset-currency">{{currency}}</span>
-                <span><strong>{{title}}</strong><small>{{subtitle}}</small></span>
+                <span class="preset-copy">
+                  <strong>{{title}}</strong>
+                  <small>{{subtitle}}</small>
+                  <span class="preset-outcome preset-outcome-{{outcomeClass}}">{{outcomeLabel}}</span>
+                </span>
               </button>
             {{/each}}
           </div>
@@ -206,7 +219,7 @@
               <div class="recurring-option-grid">
                 <label>
                   <span>Recurring model</span>
-                  <select id="recurring-model" name="recurringModel" {{#unless catalogAvailable}}disabled{{/unless}}>
+                  <select id="recurring-model" name="recurringModel" aria-describedby="recurring-availability" {{#unless catalogAvailable}}disabled{{/unless}}>
                     {{#each recurringModels}}
                       <option value="{{value}}">{{label}}</option>
                     {{/each}}
@@ -224,6 +237,7 @@
                   <small id="plan-availability" aria-live="polite">No plan available</small>
                 </label>
               </div>
+              <p id="recurring-availability" class="stage-notice" role="status" aria-live="polite" hidden></p>
               <div class="recurring-model-copy">
                 <p id="merchant-managed-copy"><strong>Model A:</strong> PhonePal sends the first and subsequent billing-cycle transactions, so the presenter can run the next cycle immediately.</p>
                 <p id="braintree-subscription-copy" hidden><strong>Model B:</strong> Braintree controls the billing schedule. Create the subscription now, then view its status and next billing date.</p>

@@ -254,7 +254,30 @@ function buildDemoViewModel(catalogService = getRuntimeCatalogService()) {
   try {
     const catalog = catalogService.getPublicMerchantAccounts();
     const accounts = catalog.map(toAccountView);
-    const scenarios = [...buildDemoScenarios(catalog)];
+    const scenarios = [...buildDemoScenarios(catalog)].map((scenario) => {
+      let outcomeLabel = 'Expected approval';
+      let outcomeClass = 'approved';
+
+      if (scenario.unsupported) {
+        outcomeLabel = 'Stops before gateway';
+        outcomeClass = 'stop';
+      } else if (scenario.disputeScenario) {
+        outcomeLabel = 'Expected dispute';
+        outcomeClass = 'dispute';
+      } else if (scenario.expectedOutcome === 'processor_declined') {
+        outcomeLabel = 'Expected decline';
+        outcomeClass = 'processor_declined';
+      } else if (scenario.expectedOutcome === 'gateway_rejected') {
+        outcomeLabel = 'Expected rejection';
+        outcomeClass = 'gateway_rejected';
+      }
+
+      return {
+        ...scenario,
+        outcomeLabel,
+        outcomeClass,
+      };
+    });
     const supportedCurrencies = discoveredCurrencies(catalog);
     const supportedCurrencySet = new Set(supportedCurrencies);
     const planOptions = (Array.isArray(state.plans) ? state.plans : [])

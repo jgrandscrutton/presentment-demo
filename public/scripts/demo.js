@@ -19,6 +19,7 @@
     planAvailability: document.querySelector('#plan-availability'),
     merchantManagedCopy: document.querySelector('#merchant-managed-copy'),
     braintreeSubscriptionCopy: document.querySelector('#braintree-subscription-copy'),
+    recurringAvailability: document.querySelector('#recurring-availability'),
     amount: document.querySelector('#amount'),
     currencyPrefix: document.querySelector('#currency-prefix'),
     demoRate: document.querySelector('#demo-rate'),
@@ -305,6 +306,47 @@
     return !isSubscriptionModel() || Boolean(elements.planId?.value);
   }
 
+  function cardSubscriptionUnavailable() {
+    return isRecurringIntent() && !isPayPalSelected() && threeDSecurePolicy === 'required';
+  }
+
+  function cardSubscriptionBlocked() {
+    return isSubscriptionModel() && cardSubscriptionUnavailable();
+  }
+
+  function cardSubscriptionMessage() {
+    return 'Model B is unavailable for Card on this required-3D-Secure route. Use Model A' +
+      (availablePaymentMethods.has(paymentMethodPayPalId) ? ', or choose PayPal for Model B.' : '.');
+  }
+
+  function confirmAuthorizationRoute(preview, authorization) {
+    const expected = preview.route;
+    const actual = authorization.route;
+    const method = selectedPaymentMethod();
+    const policy = normalizeThreeDSecurePolicy(expected?.account?.threeDSecurePolicy);
+    const matches = expected?.matched === true && actual?.matched === true &&
+      typeof expected.account?.merchantAccountId === 'string' &&
+      expected.account.merchantAccountId.length > 0 &&
+      actual.account?.merchantAccountId === expected.account.merchantAccountId &&
+      actual.intent?.currency === expected.intent?.currency &&
+      actual.intent?.paymentType === expected.intent?.paymentType &&
+      actual.intent?.currency === elements.currency.value &&
+      actual.intent?.paymentType === elements.paymentType.value &&
+      policy !== null && normalizeThreeDSecurePolicy(actual.account?.threeDSecurePolicy) === policy &&
+      authorization.request?.paymentMethod === method &&
+      Array.isArray(actual.account?.paymentMethods) && actual.account.paymentMethods.includes(method);
+    if (matches) return true;
+
+    freshPreviewRequired = true;
+    setPaymentSetupAvailability(false);
+    setInspectorState('Route changed', 'blocked');
+    setCheckoutStatus(
+      'The authorized route or payment policy no longer matches the preview. No payment was sent. Preview the route again before continuing.',
+      'blocked'
+    );
+    return false;
+  }
+
   function recurringStartRequest(nonce, intent = currentIntent()) {
     return {
       ...intent,
@@ -393,13 +435,24 @@
 
   function refreshPaymentMethodPresentation() {
     const paypalSelected = isPayPalSelected();
-    const cardReady = paymentSetupReady && !paypalSelected;
+    const subscriptionBlocked = cardSubscriptionBlocked();
+    const cardReady = paymentSetupReady && !paypalSelected && !subscriptionBlocked;
     const paymentActionAvailable =
       paymentSetupReady &&
       !paymentRunning &&
       !freshPreviewRequired &&
       !(isRecurringIntent() && recurringStartCompleted) &&
-      selectedPlanAvailable();
+      selectedPlanAvailable() && !subscriptionBlocked;
+
+    const subscriptionOption = Array.from(elements.recurringModel?.options || [])
+      .find((option) => option.value === 'braintree_subscription');
+    if (subscriptionOption) subscriptionOption.disabled = cardSubscriptionUnavailable();
+    if (elements.recurringAvailability) {
+      elements.recurringAvailability.hidden = !cardSubscriptionUnavailable();
+      elements.recurringAvailability.textContent = cardSubscriptionUnavailable()
+        ? cardSubscriptionMessage()
+        : '';
+    }
 
     if (elements.paymentMethodCardOption) {
       elements.paymentMethodCardOption.hidden = !availablePaymentMethods.has('card');
@@ -1749,6 +1802,12 @@
       return;
     }
 
+    if (cardSubscriptionBlocked()) {
+      setInspectorState('Subscription unavailable', 'blocked');
+      setCheckoutStatus(cardSubscriptionMessage(), 'blocked');
+      return;
+    }
+
     if (!window.braintree?.client || !window.braintree?.hostedFields) {
       setCheckoutStatus('The secure Braintree card component could not be loaded.', 'blocked');
       setInspectorState('SDK unavailable', 'blocked');
@@ -1789,6 +1848,8 @@
       setInspectorState('Setup failed', 'blocked');
       return;
     }
+
+    if (!confirmAuthorizationRoute(routePayload, tokenResponse.data)) return;
 
     let pendingHostedFields = null;
     let pendingThreeDSecure = null;
@@ -1969,6 +2030,8 @@
       return;
     }
 
+    if (!confirmAuthorizationRoute(routePayload, tokenResponse.data)) return;
+
     try {
       const client = await window.braintree.client.create({
         authorization: tokenResponse.data.clientToken,
@@ -2115,9 +2178,10 @@
 
     selectManualScenario();
     if (isPayPalSelected()) {
+      const wasFailureScenario = elements.expectedOutcome.value !== 'approved';
       elements.expectedOutcome.value = 'approved';
       disputeScenarioSelected = false;
-      updateExpectedOutcomeConfiguration({ resetAmount: true });
+      updateExpectedOutcomeConfiguration({ resetAmount: wasFailureScenario });
     }
     updateRecurringConfiguration();
     updateRunButtonLabel();
@@ -2279,6 +2343,11 @@
         'This recurring start already completed. Use its follow-up controls or start a fresh route preview.',
         'blocked'
       );
+      return false;
+    }
+
+    if (cardSubscriptionBlocked()) {
+      setCheckoutStatus(cardSubscriptionMessage(), 'blocked');
       return false;
     }
 
