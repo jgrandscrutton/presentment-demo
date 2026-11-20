@@ -2470,6 +2470,11 @@
       );
     }
     const explicitFailedScenario = selectedThreeDSecureScenario() === 'failed';
+    if (explicitFailedScenario && verification.liabilityShifted === true) {
+      throw createThreeDSecureClientError(
+        'Braintree authenticated this card successfully, which does not match the selected failure scenario. Enter the failure test card shown above and try again. No payment request was sent.'
+      );
+    }
     if (
       (threeDSecurePolicy === 'required' || explicitFailedScenario) &&
       verification.liabilityShifted !== true

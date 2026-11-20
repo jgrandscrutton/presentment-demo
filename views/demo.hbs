@@ -294,15 +294,15 @@
                 <input id="three-d-secure-enabled" type="checkbox" checked>
                 <span><strong>Use optional 3D Secure</strong><small>Turn this off to compare a plain card nonce on an optional route.</small></span>
               </label>
-              <fieldset id="three-d-secure-scenarios" class="three-d-secure-scenarios">
-                <legend>Sandbox authentication path</legend>
+              <fieldset id="three-d-secure-scenarios" class="three-d-secure-scenarios" aria-describedby="three-d-secure-card-copy">
+                <legend>Sandbox test-card guidance</legend>
                 <div>
                   <label><input type="radio" name="threeDSecureScenario" value="frictionless" checked><span><strong>Frictionless</strong><small>No challenge</small></span></label>
                   <label><input type="radio" name="threeDSecureScenario" value="challenge"><span><strong>Challenge</strong><small>Complete issuer step</small></span></label>
                   <label><input type="radio" name="threeDSecureScenario" value="failed"><span><strong>Failed</strong><small>Stops before sale</small></span></label>
                 </div>
               </fieldset>
-              <p id="three-d-secure-card-copy" class="three-d-secure-card-copy">Enter <code id="three-d-secure-card-number">4000 0000 0000 2701</code>, expiry <code>01/29</code>, and any 3-digit CVV.</p>
+              <p id="three-d-secure-card-copy" class="three-d-secure-card-copy">Enter <code id="three-d-secure-card-number">4000 0000 0000 2701</code>, expiry <code>01/29</code>, and any 3-digit CVV. Selecting a path changes this guidance. Replace the card number entered above to test a different path.</p>
               <p id="three-d-secure-status" class="three-d-secure-status" role="status" aria-live="polite">Ready to authenticate after tokenization.</p>
             </section>
 

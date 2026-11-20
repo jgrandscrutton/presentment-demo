@@ -688,8 +688,10 @@ function createDemoApiRouter({
         paymentMethodNonce: req.body.paymentMethodNonce,
         orderId,
         submitForSettlement: safeRequest.transactionMode === 'submit_for_settlement',
-        ...(safeRequest.paymentMethod === 'card'
-          ? { threeDSecureRequired: nonceThreeDSecureVerification.required }
+        // Preserve Braintree's default enforcement for 3DS-enriched nonces on
+        // optional routes. Sending false would override an authentication failure.
+        ...(nonceThreeDSecureVerification.required
+          ? { threeDSecureRequired: true }
           : {}),
       });
     } catch (error) {

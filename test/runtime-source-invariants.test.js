@@ -220,8 +220,8 @@ test('server enforces account-owned 3D Secure policy before card mutations', () 
   );
   assert.match(
     oneTimeSource,
-    /threeDSecureRequired:\s*nonceThreeDSecureVerification\.required/,
-    'The transaction request must carry the server-owned required flag.'
+    /nonceThreeDSecureVerification\.required\s*\?\s*{\s*threeDSecureRequired:\s*true\s*}/,
+    'Required routes must enforce 3DS without disabling gateway defaults on optional routes.'
   );
 
   const recurringGate = recurringSource.search(

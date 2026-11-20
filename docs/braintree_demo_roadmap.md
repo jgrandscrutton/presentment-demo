@@ -277,7 +277,7 @@ The detailed implementation specification and acceptance tests are in [`stage_1.
 
 ### Stage 6: 3D Secure
 
-**Status:** Implemented locally. Required Card authentication is enforced from server-observed Braintree evidence before mutation, and the browser flow uses Braintree 3D Secure v2. Live Sandbox challenge and liability-shift review remains outstanding as described in `STAGE_6_CHANGES.md`.
+**Status:** Implemented locally. Required Card authentication is enforced from server-observed Braintree evidence before mutation, and the browser flow uses Braintree 3D Secure v2. Direct Sandbox checks on 19 November 2026 confirmed gateway 3DS rejection for missing required authentication and failed optional authentication after removing the optional-route enforcement override. Live browser challenge and liability-shift review remains outstanding as described in `STAGE_6_CHANGES.md`.
 
 **Goal:** Show strong customer authentication and liability shift, which matters most on the EUR route.
 

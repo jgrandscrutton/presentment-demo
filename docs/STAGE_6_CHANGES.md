@@ -1,7 +1,7 @@
 # Stage 6 Changes: 3D Secure
 
 **Date:** 16 November 2026
-**Status:** Implemented locally; a live Sandbox challenge and liability-shift review remains a browser step
+**Status:** Gateway rejection verified in Sandbox on 19 November 2026; a live browser challenge review remains outstanding
 
 ## Outcome
 
@@ -14,7 +14,7 @@ PayPal remains mediated by Braintree PayPal Checkout and is correctly labelled a
 ## Customer flow and interface
 
 - Added a compact Card-only 3D Secure panel after Hosted Fields, with Required or Optional policy copy and a clear readiness/authentication status.
-- Added frictionless, challenge, and failed-authentication choices using Braintree's documented Sandbox test cards.
+- Added frictionless, challenge, and failed-authentication guidance using Braintree's documented Sandbox test cards. Selecting a path does not replace the card already entered in Hosted Fields; the presenter must enter the displayed test card.
 - Optional routes let the presenter turn 3D Secure off for comparison; required routes cannot be bypassed in the browser.
 - Hosted Fields and 3D Secure use the same Braintree client created from the client token for the resolved merchant account.
 - The Card sequence is Hosted Fields tokenization, 3D Secure verification with amount and BIN, then submission of only the upgraded nonce.
@@ -32,7 +32,7 @@ The browser never sends a merchant account ID, an account policy, or authoritati
 4. evaluates that evidence against the selected account's policy; and
 5. blocks required authentication that is missing, failed, or did not produce liability shift before any sale or vault mutation.
 
-The transaction wrapper accepts a boolean server-owned policy decision and maps it to `options.threeDSecure.required` only for nonce-based sales. Card transaction responses are independently checked again. A completed mutation whose returned transaction lacks required proof is treated as unsafe to retry and directs the presenter to the Sandbox Control Panel.
+Required Card sales explicitly send `options.threeDSecure.required: true`. Optional sales omit this option so Braintree retains its default enforcement for a 3DS-enriched nonce; optional policy must not force an authentication failure through with `required: false`. Card transaction responses are independently checked again. A completed mutation whose returned transaction lacks required proof is treated as unsafe to retry and directs the presenter to the Sandbox Control Panel.
 
 Missing or failed required authentication is retry-safe and creates a bounded `three_d_secure` audit event when local persistence is available. The event records only policy, normalized status, liability-shift booleans, the route, and the safe verification explanation. The separate required-Model-B re-authentication block happens after route resolution but before vaulting, so it leaves the route-resolution event rather than claiming that authentication itself failed.
 
@@ -105,7 +105,22 @@ Recurring responses and redacted evidence may also include separate bounded `vau
 - The dependency-free Node `vm` client harness uses a fake DOM and fake Braintree SDK to cover the 3D Secure component lifecycle, upgraded-nonce submission, optional bypass, PayPal exclusion, failure-before-payment behaviour, stale callbacks, and proof rendering. Stage 7 separately adds real headless-Chrome/CDP presenter-workflow smoke, without live payment execution.
 - Runtime source-contract tests require the Braintree 3D Secure v2 script and client chain, shared resolved-account client, upgraded nonce handoff, server-owned policy gates, and the validated gateway option mapping.
 - JavaScript syntax checks and the full Node regression suite are part of the local Stage 6 review.
-- No live Sandbox payment, challenge, or liability-shift claim was made while implementing this stage.
+- The initial stage implementation did not include a live Sandbox payment, challenge, or liability-shift review. The later gateway rejection checks below cover only their stated negative cases.
+
+## Gateway enforcement correction — 19 November 2026
+
+The one-time API previously sent `threeDSecure.required: false` for every optional Card route. Braintree documents this as an override that can allow a transaction despite failed authentication. The API now omits that override while retaining explicit enforcement for required routes and the existing server checks before sale. Missing or failed authentication on a required route normally stops locally, so that path does not create a gateway-rejected transaction.
+
+The browser also previously allowed payment when the presenter selected Failed but left a successfully authenticated test card in Hosted Fields. That mismatch now stops before either a one-time payment or recurring-start request, with instructions to replace the entered card. It does not claim that successful authentication was rejected by Braintree.
+
+Two bounded, authorization-only checks were sent directly through the shared gateway wrapper to the connected Braintree Sandbox, independently of the browser's local checks:
+
+| Test | Currency | Transaction ID | Gateway result |
+| --- | --- | --- | --- |
+| Plain card nonce with `threeDSecure.required: true` | EUR | `6k2chxkp` | `gateway_rejected`, reason `three_d_secure` |
+| Failed-authentication test nonce with the option omitted | USD | `466javys` | `gateway_rejected`, reason `three_d_secure`; `authenticate_failed`, liability not shifted |
+
+Neither request submitted for settlement, and neither was approved. These checks verify gateway rejection using SDK test nonces; they do not verify the browser's issuer challenge. The full suite passed 445 tests, including regressions for the outgoing SDK options and the Failed-selection mismatch. The isolated Stage 7 browser smoke also passed without live payment execution.
 
 ## Stage boundary
 

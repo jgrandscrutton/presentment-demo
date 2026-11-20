@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { createDemoApiRouter } = require('../routes/demo-api');
+const { createGatewayClient } = require('../lib/braintree/gateway');
 
 function createAccount(
   merchantAccountId,
@@ -686,7 +687,6 @@ test('one-time payment executes against the routed account, verifies it, and exp
         paymentMethodNonce: submittedNonce,
         orderId: 'routing-demo-usd-one-time-1797000000000-request-id',
         submitForSettlement: true,
-        threeDSecureRequired: false,
       },
     ]);
 
@@ -846,6 +846,75 @@ test('nonce inspection outage is explicitly retry-safe because no sale was reque
     assert.deepEqual(calls.sale, []);
     assertNoSensitiveOutput(response.text, ['opaque-nonce-secret']);
   });
+});
+
+test('optional routes preserve gateway 3D Secure defaults for a failed-authentication nonce', async () => {
+  const catalogService = createFakeCatalogService();
+  catalogService.assertMerchantAccountId = (merchantAccountId) => {
+    assert.equal(merchantAccountId, 'account-usd-sale');
+    return merchantAccountId;
+  };
+  const threeDSecureInfo = {
+    status: 'authenticate_frictionless_failed',
+    liabilityShiftPossible: false,
+    liabilityShifted: false,
+  };
+  const saleRequests = [];
+  const gatewayClient = createGatewayClient({
+    clientToken: {
+      async generate() {
+        throw new Error('This payment must not generate a new client token.');
+      },
+    },
+    paymentMethodNonce: {
+      async find() {
+        return { type: 'CreditCard', threeDSecureInfo };
+      },
+    },
+    transaction: {
+      async sale(request) {
+        saleRequests.push(structuredClone(request));
+        return {
+          success: false,
+          transaction: {
+            id: 'txn-three-d-secure-rejected',
+            status: 'gateway_rejected',
+            gatewayRejectionReason: 'three_d_secure',
+            merchantAccountId: request.merchantAccountId,
+            currencyIsoCode: 'USD',
+            amount: request.amount,
+            paymentInstrumentType: 'credit_card',
+            threeDSecureInfo,
+          },
+        };
+      },
+    },
+  }, { catalogService });
+  const store = createFakeStore();
+  const router = createDemoApiRouter({
+    gatewayClient,
+    catalogService,
+    store,
+    logger: { error() {} },
+    merchantId: 'sandbox_merchant',
+  });
+
+  const response = await invokePost(router, '/payments/one-time', {
+    currency: 'USD',
+    paymentType: 'one_time',
+    paymentMethod: 'card',
+    amount: '19.00',
+    paymentMethodNonce: 'failed-authentication-nonce',
+    threeDSecureRequired: false,
+  });
+
+  assert.equal(saleRequests.length, 1);
+  assert.deepEqual(saleRequests[0].options, { submitForSettlement: true });
+  assert.equal(response.body.paymentApproved, false);
+  assert.equal(response.body.demoOutcome.actual, 'gateway_rejected');
+  assert.equal(response.body.braintreeResult.transaction.gatewayRejectionReason, 'three_d_secure');
+  assert.equal(store.events.at(-1).liabilityShifted, false);
+  assertNoSensitiveOutput(response.text, ['failed-authentication-nonce']);
 });
 
 test('required 3D Secure blocks missing or failed authentication before sale', async (t) => {

@@ -1059,6 +1059,28 @@ test('a resolved failed authentication stops before payment on an optional route
   assert.match(harness.elements['checkout-status'].textContent, /No payment request was sent/i);
 });
 
+test('selecting the failed scenario cannot submit a card that authenticated successfully', async () => {
+  const harness = createClientHarness('authorized');
+  await waitFor(() =>
+    harness.calls.hostedFields === 1 &&
+    harness.calls.threeDSecureCreates.length === 1 &&
+    !harness.elements['run-payment'].disabled
+  );
+
+  harness.threeDSecureScenarioOptions[0].checked = false;
+  harness.threeDSecureScenarioOptions[2].checked = true;
+  await harness.threeDSecureScenarioOptions[2].dispatch('change');
+  await harness.elements['demo-payment-form'].dispatch('submit');
+
+  assert.equal(harness.calls.threeDSecureVerifications.length, 1);
+  assert.equal(harness.calls.payment, 0);
+  assert.equal(harness.calls.recurringStart, 0);
+  assert.equal(harness.elements['run-payment'].disabled, false);
+  assert.match(harness.elements['checkout-status'].textContent, /authenticated.*successfully/i);
+  assert.match(harness.elements['checkout-status'].textContent, /failure test card/i);
+  assert.match(harness.elements['checkout-status'].textContent, /No payment request was sent/i);
+});
+
 test('changing 3D Secure controls clears proof from the prior transaction', async () => {
   const harness = createClientHarness('authorized');
   await waitFor(() =>
