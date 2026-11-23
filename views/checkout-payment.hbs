@@ -1,0 +1,71 @@
+<section style="background:linear-gradient(135deg,var(--pp-navy) 0%,#0057B8 100%);color:#fff;padding:40px 0 32px">
+  <div class="container">
+    <p class="checkout-breadcrumb"><a href="/">Home</a> &rsaquo; <a href="/cart">Basket</a> &rsaquo; Checkout</p>
+    <h1 style="font-size:2rem;font-weight:800;margin-bottom:20px">Checkout</h1>
+    <div class="co-steps">
+      <div class="co-step co-step--done"><span class="co-step-num">✓</span> Account</div>
+      <div class="co-step-divider co-step-divider--done"></div>
+      <div class="co-step co-step--done"><span class="co-step-num">✓</span> Shipping</div>
+      <div class="co-step-divider co-step-divider--done"></div>
+      <div class="co-step co-step--active"><span class="co-step-num">3</span> Payment</div>
+    </div>
+  </div>
+</section>
+<section class="section" style="padding:48px 0">
+  <div class="container">
+    <div class="co-layout" data-storefront-payment data-kind="cart">
+      <div class="co-main">
+        <div class="co-panel">
+          <h2 class="co-section-title">Payment details</h2>
+          <p class="payment-demo-note">Sandbox checkout. Use your sandbox PayPal account or a Braintree test card.</p>
+          <form data-card-form>
+            <div class="form-group">
+              <label class="form-label" for="card-number">Card number</label>
+              <div class="hosted-card-field" id="card-number"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="card-expiry">Expiry date</label>
+                <div class="hosted-card-field" id="card-expiry"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="card-cvv">Security code</label>
+                <div class="hosted-card-field" id="card-cvv"></div>
+              </div>
+            </div>
+            <p class="co-secure-note">🔒 Your card details are encrypted and securely processed by Braintree.</p>
+            <p data-card-feedback class="payment-feedback" role="status" aria-live="polite"></p>
+            <div class="co-btn-row">
+              <a href="/checkout/shipping" class="btn btn-outline">Back</a>
+              <button type="submit" class="btn btn-primary" data-card-submit disabled>Place order · £{{total}}</button>
+            </div>
+          </form>
+        </div>
+        <div class="co-panel" style="margin-top:20px">
+          <h2 class="co-section-title">Or pay with PayPal</h2>
+          <div data-paypal-buttons></div>
+          <p data-payment-feedback class="payment-feedback" role="status" aria-live="polite">Loading secure payment options…</p>
+        </div>
+      </div>
+      <aside class="co-summary">
+        <h2 class="cart-summary-title">Order Summary</h2>
+        {{#each cart}}
+        <div class="co-summary-item">
+          <span class="co-summary-emoji">{{emoji}}</span>
+          <div class="co-summary-info"><p class="co-summary-name">{{name}}</p><p class="co-summary-meta">{{size}} · {{colour}} × {{quantity}}</p></div>
+          <span class="co-summary-price">£{{itemTotal upfrontPrice quantity}}</span>
+        </div>
+        {{/each}}
+        <div class="cart-summary-row"><span>Subtotal</span><span>£{{total}}</span></div>
+        <div class="cart-summary-row"><span>Delivery</span><span style="color:#2E7D32">Free</span></div>
+        <div class="cart-summary-total"><span>Total</span><span>£{{total}}</span></div>
+        <div class="co-ship-summary">
+          <p class="detail-label">Shipping to</p>
+          <p>{{shipping.firstName}} {{shipping.lastName}}</p>
+          <p>{{shipping.line1}}{{#if shipping.line2}}, {{shipping.line2}}{{/if}}</p>
+          <p>{{shipping.city}}, {{shipping.postcode}}</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>

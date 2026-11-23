@@ -1,17 +1,9 @@
-const braintree = require('braintree');
+const gateway = require('../config/braintree');
 const express = require('express');
 const router = express.Router();
 const webhookRouter = require('./webhooks');
 
-const gateway = new braintree.BraintreeGateway({
-    environment: braintree.Environment.Sandbox,
-    merchantId: process.env.MERCHANT_ID,
-    publicKey: process.env.PUBLIC_KEY,
-    privateKey: process.env.PRIVATE_KEY,
-});
-
 router.use('/webhooks', webhookRouter);
-console.log('MERCHANT_ACCOUNT_ID:', JSON.stringify(process.env.MERCHANT_ACCOUNT_ID));
 
 router.route('/client-token').get((req, res, next) => {
    gateway.clientToken.generate({merchantAccountId: process.env.MERCHANT_ACCOUNT_ID}, (err, response) => {

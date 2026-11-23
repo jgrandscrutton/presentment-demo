@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const devices = require('../data/devices');
+router.use((req, res, next) => { res.locals.layout = 'store'; next(); });
 
 router.get('/', (req, res, next) => {
     res.render('index', { title: 'Recurring Billing' });
