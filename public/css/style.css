@@ -713,6 +713,34 @@ paypal-message {
 }
 
 /* Braintree payment controls within the original storefront layout. */
+.billing-hero { padding: 48px 0; background: var(--pp-light); color: var(--pp-navy); }
+.billing-hero h1 { font-size: clamp(2rem, 4vw, 3rem); margin-bottom: 12px; }
+.billing-hero p { max-width: 720px; }
+.billing-section { margin-bottom: 48px; }
+.billing-card { border: 1px solid #dfe3ef; border-radius: var(--radius); padding: 24px; margin: 16px 0; background: white; }
+.billing-card-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.billing-status { border-radius: 20px; padding: 6px 12px; background: var(--pp-light); color: var(--pp-navy); font-size: 0.875rem; text-transform: capitalize; }
+.billing-actions, .express-wallets { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+.billing-actions .form-input { width: auto; max-width: 100%; }
+.billing-usage-form { border-top: 1px solid #dfe3ef; padding-top: 20px; margin-top: 20px; display: flex; align-items: end; gap: 16px; flex-wrap: wrap; }
+.billing-usage-form h4, .billing-usage-form > p { width: 100%; margin: 0; }
+.billing-usage-form label { flex: 1; min-width: 120px; }
+.billing-table-wrap { overflow-x: auto; }
+.billing-table { width: 100%; border-collapse: collapse; text-align: left; }
+.billing-table th, .billing-table td { padding: 14px; border-bottom: 1px solid #dfe3ef; font-size: 0.875rem; }
+.billing-consent { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; margin: 16px 0; }
+.billing-consent input { margin-top: 6px; flex-shrink: 0; }
+.billing-consent-copy { border-left: 3px solid var(--pp-blue); padding: 12px 16px; background: var(--pp-light); font-size: 0.9rem; margin: 16px 0; }
+.demo-billing-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+.card-payment-panel { margin: 24px 0; }
+.card-payment-panel summary { cursor: pointer; font-weight: 600; color: var(--pp-navy); padding: 12px 0; }
+.paylater-banner { padding: 20px 0; background: #f5f7ff; }
+.express-wallets > * { width: 100%; min-height: 44px; }
+.apple-pay-button { -webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: black; background: #000; color: #fff; border: 0; border-radius: 24px; min-height: 44px; cursor: pointer; }
+[data-saved-methods] .form-input { margin: 12px 0; }
+[data-saved-methods] .btn { width: 100%; margin-bottom: 16px; }
+[hidden] { display: none !important; }
+@media (max-width: 768px) { .demo-billing-layout { grid-template-columns: 1fr; } .billing-card { padding: 20px; } }
 .hosted-card-field {
   height: 52px;
   padding: 0 14px;

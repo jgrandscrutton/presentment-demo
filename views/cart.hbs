@@ -67,12 +67,15 @@
           <span>Total</span>
           <span>£{{total}}</span>
         </div>
-        <div data-pp-message data-pp-amount="{{total}}" data-pp-style-layout="text"></div>
+        <div data-paylater-message data-paylater-amount="{{total}}" data-pp-style-layout="text"></div>
         <br>
 
         <div class="detail-paypal-actions">
           <a href="/checkout" class="btn btn-primary" style="display:block;text-align:center;margin-top:20px">Checkout</a>
           <div data-storefront-payment data-kind="cart" >
+          <div data-saved-methods></div>
+          <div data-express-wallets class="express-wallets"></div>
+          <p data-wallet-availability class="payment-demo-note"></p>
           <div data-paypal-buttons></div>
           <p data-payment-feedback class="payment-feedback" role="status" aria-live="polite">Loading secure payment options…</p>
         </div>

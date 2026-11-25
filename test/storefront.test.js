@@ -9,18 +9,31 @@ const paymentRouter = require('../routes/storefront-payment');
 const device = devices[0];
 const sales = [];
 const account = { id: 'gbp-sandbox', default: true, currencyIsoCode: 'GBP' };
+const customers = new Map();
+const subscriptions = new Map();
+const missing = () => { throw Object.assign(new Error('Not found'), { type: 'notFoundError' }); };
 const gateway = {
   merchantAccount: { all: callback => callback(null, [account]), find: async () => account },
   clientToken: { generate: async () => ({ clientToken: 'test-client-token' }) },
+  customer: { find: async id => customers.get(id) || missing(), create: async data => { customers.set(data.id, data); return { success: true, customer: data }; } },
+  paymentMethod: { delete: async () => ({ success: true }) },
+  plan: { all: async () => [{ id: 'monthly-gbp', currencyIsoCode: 'GBP', billingFrequency: 1 }] },
+  subscription: {
+    find: async id => subscriptions.get(id) || missing(),
+    create: async data => { const subscription = { ...data, status: 'Pending' }; subscriptions.set(data.id, subscription); return { success: true, subscription }; },
+    cancel: async id => { subscriptions.get(id).status = 'Canceled'; return { success: true }; },
+  },
+  webhookNotification: { parse: async (signature, payload) => { if (signature !== 'verified-test-signature') throw new Error('Invalid signature'); return JSON.parse(payload); } },
   paymentMethodNonce: { find: async nonce => nonce.startsWith('card') ? { type: 'CreditCard', threeDSecureInfo: { liabilityShifted: nonce === 'card-verified' } } : { type: 'PayPalAccount' } },
   transaction: { sale: async options => {
     sales.push(options);
-    return options.paymentMethodNonce === 'declined' ? { success: false, message: 'Processor declined' } : { success: true, transaction: { id: 'sandbox-transaction', amount: options.amount } };
+    return options.paymentMethodNonce === 'declined' ? { success: false, message: 'Processor declined' } : { success: true, transaction: { id: `sandbox-transaction-${sales.length}`, amount: options.amount, ...(options.options.storeInVaultOnSuccess ? { paypalAccount: { token: `vault-${options.customerId}`, payerEmail: 'buyer@example.test' } } : {}) } };
   } },
 };
 const gatewayPath = require.resolve('../config/braintree');
 require.cache[gatewayPath] = { id: gatewayPath, filename: gatewayPath, loaded: true, exports: gateway };
 process.env.MERCHANT_ACCOUNT_ID = '';
+process.env.PAYMENTS_DB_PATH = ':memory:';
 const app = require('../app');
 let server;
 let base;
@@ -75,7 +88,7 @@ test('invalid catalogue choices and quantities are rejected', () => {
 
 test('the restored storefront, plans and existing Braintree demos render', async () => {
   const request = browser();
-  for (const path of ['/', '/devices', `/devices/${device.id}`, '/plans', '/plans/basic', '/plans/variable', '/plans/autotopup', '/cart', '/basic', '/subscription', '/webhook-activity']) {
+  for (const path of ['/', '/devices', `/devices/${device.id}`, '/plans', '/plans/basic', '/plans/variable', '/plans/autotopup', '/cart', '/basic', '/billing', '/webhook-activity']) {
     const page = await request(path);
     assert.equal(page.status, 200, path);
     assert.doesNotMatch(page.text, /web-sdk\/v6|PAYPAL_CONFIG|\/scripts\/paypal-checkout\.js|\/api\/paypal/);
@@ -165,4 +178,37 @@ test('a USD merchant account is rejected before issuing a storefront token', asy
     assert.equal(response.status, 503);
     assert.match((await response.json()).error, /GBP/);
   } finally { await new Promise(resolve => instance.close(resolve)); }
+});
+
+test('billing API owns saved methods and cancellation; another session cannot access them', async () => {
+  const owner = browser(); const stranger = browser();
+  const prepared = (await owner('/api/storefront/quote', { kind: 'plan', planId: 'basic' })).json();
+  assert.equal((await owner('/api/storefront/pay', { quoteId: prepared.id, nonce: 'paypal-plan' })).status, 400);
+  assert.equal((await owner('/api/storefront/pay', { quoteId: prepared.id, nonce: 'paypal-plan', billingConsent: true })).status, 200);
+  const summary = (await owner('/api/billing')).json();
+  assert.equal(summary.agreements.length, 1); assert.equal(summary.methods.length, 1);
+  assert.doesNotMatch(JSON.stringify(summary), /vault-/);
+  const agreement = summary.agreements[0]; const method = summary.methods[0];
+  assert.equal((await stranger(`/api/billing/agreements/${agreement.id}/cancel`, {})).status, 404);
+  assert.equal((await stranger(`/api/billing/payment-methods/${method.id}/nonce`, {})).status, 404);
+  assert.equal((await owner(`/api/billing/payment-methods/${method.id}/remove`, {})).status, 409);
+  assert.equal((await owner(`/api/billing/agreements/${agreement.id}/cancel`, {})).status, 200);
+  assert.equal((await owner(`/api/billing/payment-methods/${method.id}/remove`, {})).status, 200);
+});
+
+test('webhook processing requires a valid Braintree signature and deduplicates delivery', async () => {
+  const request = browser();
+  assert.equal((await request('/api/webhooks/braintree', { kind: 'subscription_charged_successfully' })).status, 400);
+  assert.equal((await request('/api/webhooks/braintree', { bt_signature: 'forged', bt_payload: '{}' })).status, 400);
+  const body = { bt_signature: 'verified-test-signature', bt_payload: JSON.stringify({ kind: 'check', timestamp: '2026-11-23T10:00:00Z' }) };
+  assert.equal((await request('/api/webhooks/braintree', body)).status, 200);
+  assert.equal((await request('/api/webhooks/braintree', body)).status, 200);
+  const activity = (await request('/api/webhooks/activity')).json();
+  assert.equal(activity.count, 1); assert.equal(activity.events[0].data.verified, true);
+});
+
+test('legacy billing pages redirect to the functional demo and retired payment endpoints cannot create one-off-only plans', async () => {
+  const request = browser();
+  assert.equal((await request('/subscription')).location, '/basic?type=subscription');
+  assert.equal((await request('/api/create-subscription', { nonce: 'anything' })).status, 410);
 });

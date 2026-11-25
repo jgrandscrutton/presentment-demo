@@ -13,7 +13,7 @@ for (const selector of ['.colour-options', '.storage-options', '.contract-option
         const price = document.getElementById('price-upfront');
         if (price && button.dataset.upfront) {
           price.textContent = button.dataset.upfront;
-          document.querySelector('[data-pp-message]')?.setAttribute('data-pp-amount', button.dataset.upfront);
+          document.querySelector('[data-paylater-message]')?.setAttribute('data-paylater-amount', button.dataset.upfront);
         }
         if (button.dataset.price) {
           document.getElementById('plan-price').textContent = button.dataset.price;

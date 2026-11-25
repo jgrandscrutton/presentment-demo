@@ -8,10 +8,11 @@
   <div class="container" style="max-width:560px">
     <div style="font-size:4rem;margin-bottom:16px">🎉</div>
     <h2 style="font-size:1.8rem;font-weight:800;color:var(--pp-navy);margin-bottom:12px">Thank you for your order!</h2>
-    <p style="color:var(--pp-muted);margin-bottom:32px">Your sandbox payment has been processed successfully.</p>
+    <p style="color:var(--pp-muted);margin-bottom:32px">{{#if order.isSetupOnly}}Your payment method has been saved. Future charges follow the billing terms you approved.{{else}}Your sandbox payment has been processed successfully.{{/if}}</p>
+    {{#if order.agreementId}}<p>Your plan status: <strong>{{order.billingStatus}}</strong>. <a href="/billing">Manage your billing</a>.</p>{{/if}}
 
     <div style="background:#fff;border:1px solid #E0E8F0;border-radius:var(--radius);padding:28px;text-align:left;margin-bottom:32px">
-      <p class="payment-receipt">Transaction: <strong>{{order.transactionId}}</strong></p>
+      {{#if order.transactionId}}<p class="payment-receipt">Transaction: <strong>{{order.transactionId}}</strong></p>{{/if}}
       <h3 style="font-size:1rem;font-weight:700;color:var(--pp-navy);margin-bottom:16px">Order summary</h3>
       {{#each order.cart}}
       <div class="co-summary-item">

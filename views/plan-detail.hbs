@@ -93,6 +93,8 @@
         {{else if (eq plan.subType 'variable')}}
           <div class="detail-price" style="font-size:1.6rem">Usage-based billing</div>
           <p style="font-size:0.85rem;color:var(--pp-muted);margin-top:8px;margin-bottom:0">No fixed monthly charge. You're billed for what you use.</p>
+          <label class="form-label" for="monthly-limit">Monthly spending limit (£)</label>
+          <input class="form-input" id="monthly-limit" data-monthly-limit type="number" min="1" max="10000" step="0.01" value="{{plan.typicalMonthlyAmount}}">
         {{else}}
           <div style="font-size:0.8rem;color:var(--pp-muted);margin-bottom:4px">Initial top-up</div>
           <div class="detail-price">£<span id="topup-display">{{plan.defaultTopUp}}</span></div>
@@ -106,13 +108,17 @@
 
        <div class="detail-paypal-actions">
         <div data-storefront-payment data-kind="plan" data-plan-id="{{plan.id}}">
+          <p class="billing-consent-copy" data-billing-terms>Preparing the billing terms…</p>
+          <label class="billing-consent"><input type="checkbox" data-billing-consent> I authorize saving my payment method and the future charges described above.</label>
+          <div data-saved-methods></div>
           <div data-paypal-buttons></div>
+          {{> card-payment}}
           <p data-payment-feedback class="payment-feedback" role="status" aria-live="polite">Loading secure payment options…</p>
         </div>
       </div>
       <div id="plan-feedback" style="display:none;margin-top:10px;padding:10px 16px;border-radius:8px;font-size:0.875rem;font-weight:600"></div>
 
-      <p class="payment-demo-note">Sandbox demo: only the initial payment is collected. Future monthly charges and automatic top-ups are not scheduled.</p>
+      <p class="payment-demo-note">Braintree sandbox. Manage saved payment methods, upcoming charges, and cancellation from <a href="/billing">Billing</a>.</p>
       <div class="detail-trust">
         <span>🔒 Secure checkout</span>
         <span>📱 Use on any device</span>

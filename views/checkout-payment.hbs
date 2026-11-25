@@ -34,6 +34,7 @@
               </div>
             </div>
             <p class="co-secure-note">🔒 Your card details are encrypted and securely processed by Braintree.</p>
+            <label class="billing-consent"><input type="checkbox" data-save-card> Save this card for future purchases.</label>
             <p data-card-feedback class="payment-feedback" role="status" aria-live="polite"></p>
             <div class="co-btn-row">
               <a href="/checkout/shipping" class="btn btn-outline">Back</a>
@@ -43,6 +44,9 @@
         </div>
         <div class="co-panel" style="margin-top:20px">
           <h2 class="co-section-title">Or pay with PayPal</h2>
+          <div data-saved-methods></div>
+          <div data-express-wallets class="express-wallets"></div>
+          <p data-wallet-availability class="payment-demo-note"></p>
           <div data-paypal-buttons></div>
           <p data-payment-feedback class="payment-feedback" role="status" aria-live="polite">Loading secure payment options…</p>
         </div>
@@ -59,6 +63,7 @@
         <div class="cart-summary-row"><span>Subtotal</span><span>£{{total}}</span></div>
         <div class="cart-summary-row"><span>Delivery</span><span style="color:#2E7D32">Free</span></div>
         <div class="cart-summary-total"><span>Total</span><span>£{{total}}</span></div>
+        <div data-paylater-message data-paylater-amount="{{total}}" data-paylater-placement="payment"></div>
         <div class="co-ship-summary">
           <p class="detail-label">Shipping to</p>
           <p>{{shipping.firstName}} {{shipping.lastName}}</p>

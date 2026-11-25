@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { basketItems, total: basketTotal } = require('../services/storefront-quote');
+const { store } = require('../config/payment-runtime');
 
 function getCartSummary(req) {
   const cart = basketItems(req.session.cart);
@@ -12,7 +13,7 @@ function getCartSummary(req) {
 router.get('/', (req, res) => {
   const { cart, total, isEmpty } = getCartSummary(req);
   if (isEmpty) return res.redirect('/cart');
-  res.render('checkout-account', { title: 'Checkout', cart, total });
+  res.render('checkout-account', { title: 'Checkout', cart, total, storefrontMessaging: true });
 });
 
 router.post('/account', (req, res) => {
@@ -28,7 +29,7 @@ router.get('/shipping', (req, res) => {
   if (isEmpty) return res.redirect('/cart');
   if (!req.session.checkoutAccount) return res.redirect('/checkout');
   const shipping = req.session.checkoutShipping || {};
-  res.render('checkout-shipping', { title: 'Shipping | Checkout', cart, total, shipping });
+  res.render('checkout-shipping', { title: 'Shipping | Checkout', cart, total, shipping, storefrontMessaging: true });
 });
 
 router.post('/shipping', (req, res) => {
@@ -58,7 +59,8 @@ router.post('/payment', (req, res) => {
 router.get('/confirmation', (req, res) => {
   const order = req.session.lastOrder;
   if (!order) return res.redirect('/');
-  res.render('checkout-confirmation', { title: 'Order Confirmed | Checkout', order });
+  const agreement = order.agreementId ? store.get('agreement', order.agreementId, req.session.billingOwner) : undefined;
+  res.render('checkout-confirmation', { title: 'Order Confirmed | Checkout', order: { ...order, ...(agreement ? { billingStatus: agreement.status } : {}) } });
 });
 
 module.exports = router;

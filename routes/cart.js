@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { randomUUID } = require('node:crypto');
 const { deviceItem, basketItems, total: basketTotal } = require('../services/storefront-quote');
 
 router.get('/', (req, res) => {
@@ -26,6 +27,7 @@ router.post('/add', (req, res) => {
     req.session.cart.push(item);
   }
   delete req.session.storefrontQuote;
+  req.session.cartVersion = randomUUID();
 
   res.json({
     success: true,
@@ -48,6 +50,7 @@ router.post('/update', (req, res) => {
     }
   }
   delete req.session.storefrontQuote;
+  req.session.cartVersion = randomUUID();
   res.redirect('/cart');
 });
 
@@ -57,6 +60,7 @@ router.post('/remove', (req, res) => {
     i => !(i.deviceId === deviceId && i.size === size && i.colour === colour)
   );
   delete req.session.storefrontQuote;
+  req.session.cartVersion = randomUUID();
   res.redirect('/cart');
 });
 

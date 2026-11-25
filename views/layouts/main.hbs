@@ -18,6 +18,7 @@
         <li><a href="/devices">Devices</a></li>
         <li><a href="/plans">Plans</a></li>
         <li><a href="/basic">Demo</a></li>
+        <li><a href="/billing">Billing</a></li>
         <li><a href="/webhook-activity">Webhooks</a></li>
       </ul>
       <div class="nav-actions">
@@ -87,12 +88,17 @@
   </footer>
 
   <script src="/scripts/storefront.js" defer></script>
-  {{#if storefrontPayment}}
+  {{#if (or storefrontPayment storefrontMessaging)}}
   <script src="https://js.braintreegateway.com/web/3.134.0/js/client.min.js" defer></script>
   <script src="https://js.braintreegateway.com/web/3.134.0/js/paypal-checkout.min.js" defer></script>
+  {{#if storefrontPayment}}
   <script src="https://js.braintreegateway.com/web/3.134.0/js/hosted-fields.min.js" defer></script>
   <script src="https://js.braintreegateway.com/web/3.134.0/js/three-d-secure.min.js" defer></script>
+  <script src="https://js.braintreegateway.com/web/3.134.0/js/apple-pay.min.js" defer></script>
+  <script src="https://js.braintreegateway.com/web/3.134.0/js/google-payment.min.js" defer></script>
+  {{/if}}
   <script src="/scripts/storefront-payment.js" defer></script>
   {{/if}}
+  {{#if billingDashboard}}<script src="/scripts/billing.js" defer></script>{{/if}}
 </body>
 </html>

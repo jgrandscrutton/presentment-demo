@@ -9,6 +9,7 @@ if (missingCredentials.length > 0) {
 }
 
 const app = require('./app');
+const { billing } = require('./config/payment-runtime');
 
 const port = process.env.PORT || 3000;
 console.log('Port', port);
@@ -21,4 +22,8 @@ const server = app.listen(port, error => {
         return;
     }
     console.log(`Server is running at http://localhost:${server.address().port}`);
+    billing.tick().catch(() => console.error('Billing reconciliation will retry on the next interval.'));
 });
+const billingTimer = setInterval(() => billing.tick().catch(() => console.error('Billing reconciliation will retry on the next interval.')), 60000);
+billingTimer.unref();
+server.on('close', () => clearInterval(billingTimer));
